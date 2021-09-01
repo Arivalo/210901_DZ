@@ -94,7 +94,7 @@ def tabela_statystyk_dnia(df):
 
 st.set_page_config(layout="wide")
 
-c1, c2, c3 = st.beta_columns((1,3,1))
+c1, c2, c3 = st.columns((1,3,1))
 
 im_sketch = "res/sketch_lowres.png"
 im_central = "res/drawing.PNG"
@@ -154,7 +154,7 @@ except KeyError:
     
 ## WYKRESY
 
-cols = st.beta_columns((1,3,1))
+cols = st.columns((1,3,1))
 
 fig = px.line(x=[1,2,3], y=[1,2,3])
 
