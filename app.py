@@ -57,7 +57,7 @@ def get_table_download_link(df, nazwa_pliku):
     in:  dataframe
     out: href string
     """
-    csv = df.to_csv(index=False)
+    csv = df.to_csv(header=False)
     b64 = base64.b64encode(csv.encode()).decode()  # some strings <-> bytes conversions necessary here
     href = f'<a href="data:file/csv;base64,{b64}" download="{nazwa_pliku}.csv">Pobierz statystyki z dnia</a>'
     
@@ -94,7 +94,7 @@ def tabela_statystyk_dnia(df):
 
 st.set_page_config(layout="wide")
 
-c1, c2, c3 = st.columns((1,3,1))
+c1, c2, c3 = st.columns((1,2,1))
 
 im_sketch = "res/sketch_lowres.png"
 im_central = "res/drawing.PNG"
@@ -112,9 +112,10 @@ zoe_logo = Image.open(im_logo2).convert('RGB')
 c1.title("WIP")
 c1.image(sketch, use_column_width=True)
  
-# c1.header("Day selection:")
+c1.header("Day selection:")
 
-data_od = c1.date_input("Day selected: ", value=dt.date(2021,8,3), min_value=dt.date(2021,8,1), max_value=dt.date.today())
+data_od = c1.date_input("", value=dt.date(2021,8,3), min_value=dt.date(2021,8,1), max_value=dt.date.today())
+c1.write("------------------")
 #data_do = c1.date_input("To:", min_value=data_od)
 
 ## c2
@@ -140,9 +141,9 @@ try:
 
     dane_z_dnia = tabela_statystyk_dnia(df)
     c2.write(f"Statystyki z {data_od}:")
-    c2.dataframe(dane_z_dnia, height=500)
+    #c2.dataframe(dane_z_dnia, height=500)
     
-    #c2.table(dane_z_dnia)
+    c3.table(dane_z_dnia)
 
     c2.write(" ")
     c2.markdown(get_table_download_link(dane_z_dnia, f'diagnostics_{data_od}'), unsafe_allow_html=True)
@@ -154,14 +155,30 @@ except KeyError:
     
 ## WYKRESY
 
+
 cols = st.columns((1,3,1))
 
-fig = px.line(x=[1,2,3], y=[1,2,3])
+fig = px.line(df, x='Data_godzina', y='Nacisk_total', title="Nacisk na osie w trakcie dnia")
 
-fig_p = plt.figure()
-plt.plot([3,2,1], [1,2,3])
 
-cols[0].plotly_chart(fig)
-cols[1].plotly_chart(fig)
-cols[2].write(fig_p)
+fig_p = plt.figure(figsize=(14,4))
+plt.plot(df['Data_godzina'], df['Fuel_consumption'])
+plt.title("Zużycie paliwa", fontsize=24)
+plt.tight_layout()
+
+fig_p1 = plt.figure(figsize=(14,4))
+plt.plot(df['Data_godzina'], df['predkosc_osi'])
+plt.title("Prędkość w trakcie dnia", fontsize=24)
+plt.tight_layout()
+
+fig_p2 = plt.figure(figsize=(14,4))
+plt.plot(df['Data_godzina'], df['motogodziny_total'])
+plt.title("Motogodziny", fontsize=24)
+plt.tight_layout()
+
+c2.plotly_chart(fig)
+
+cols[1].write(fig_p)
+cols[1].write(fig_p1)
+cols[1].write(fig_p2)
 #cols[2].plotly_chart(fig)
