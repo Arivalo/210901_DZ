@@ -87,6 +87,8 @@ def tabela_statystyk_dnia(df):
     dane_dnia['Energia hydrauliczna zagęszczania [kJ]'] = [df['energia_hydr_zageszczania'].max()]
 
     dane_dnia = dane_dnia.T.rename(columns={0:""})
+    #dane_dnia.columns = dane_dnia.iloc[0]
+    #dane_dnia = dane_dnia.iloc[1:]
     
     return dane_dnia.round(1).astype(str)
     
@@ -145,40 +147,41 @@ try:
     
     c3.table(dane_z_dnia)
 
-    c2.write(" ")
     c2.markdown(get_table_download_link(dane_z_dnia, f'diagnostics_{data_od}'), unsafe_allow_html=True)
+    
+    ## WYKRESY
 
+    
+    cols = st.columns((1,2,1))
+
+    fig = px.line(df, x='Data_godzina', y='Nacisk_total', title="Nacisk na osie w trakcie dnia")
+
+
+    fig_p = plt.figure(figsize=(14,4))
+    plt.plot(df['Data_godzina'], df['Fuel_consumption'])
+    plt.title("Zużycie paliwa", fontsize=24)
+    plt.tight_layout()
+
+    fig_p1 = plt.figure(figsize=(14,4))
+    plt.plot(df['Data_godzina'], df['predkosc_osi'])
+    plt.title("Prędkość w trakcie dnia", fontsize=24)
+    plt.tight_layout()
+
+    fig_p2 = plt.figure(figsize=(14,4))
+    plt.plot(df['Data_godzina'], df['motogodziny_total'])
+    plt.title("Motogodziny", fontsize=24)
+    plt.tight_layout()
+
+    c2.plotly_chart(fig)
+
+    cols[1].write(fig_p)
+    cols[1].write(fig_p1)
+    cols[1].write(fig_p2)
+    #cols[2].plotly_chart(fig)
+    
     
 except KeyError:
     
     st.write("No data for selected date")
     
-## WYKRESY
 
-
-cols = st.columns((1,3,1))
-
-fig = px.line(df, x='Data_godzina', y='Nacisk_total', title="Nacisk na osie w trakcie dnia")
-
-
-fig_p = plt.figure(figsize=(14,4))
-plt.plot(df['Data_godzina'], df['Fuel_consumption'])
-plt.title("Zużycie paliwa", fontsize=24)
-plt.tight_layout()
-
-fig_p1 = plt.figure(figsize=(14,4))
-plt.plot(df['Data_godzina'], df['predkosc_osi'])
-plt.title("Prędkość w trakcie dnia", fontsize=24)
-plt.tight_layout()
-
-fig_p2 = plt.figure(figsize=(14,4))
-plt.plot(df['Data_godzina'], df['motogodziny_total'])
-plt.title("Motogodziny", fontsize=24)
-plt.tight_layout()
-
-c2.plotly_chart(fig)
-
-cols[1].write(fig_p)
-cols[1].write(fig_p1)
-cols[1].write(fig_p2)
-#cols[2].plotly_chart(fig)
