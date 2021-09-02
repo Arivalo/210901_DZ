@@ -254,7 +254,7 @@ if not df.empty:
     ax_2.xaxis.set_major_formatter(xfmt)
     plt.grid()
     plt.tight_layout()
-    #plt.legend()
+    plt.legend()
 
     #c2.plotly_chart(fig)
 
