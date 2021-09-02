@@ -221,13 +221,10 @@ if not df.empty:
     ## WYKRESY DOLNE ##
     xfmt = mdates.DateFormatter('%H:%M')
     
-    # fix dla wersji online
-    df[0] = 0
-    
     # MOTOGODZINY
     fig_p0, ax_0 = plt.subplots(1, figsize=(8,5))
     plt.plot(df['Data_godzina'], df['motogodziny_total'], ls='--', lw=3, c='red', label='mth total [h]')
-    plt.fill_between(df['Data_godzina'].values, df[0], df['motogodziny_jazda'].values, "green", label='mth driving [h]')
+    plt.fill_between(df['Data_godzina'].values, df['motogodziny_jazda'].values, 0, "green", label='mth driving [h]')
     plt.fill_between(df['Data_godzina'], df['motogodziny_jazda'], df['motogodziny_jazda']+df['motogodziny_900rpm_zabudowa'], "orange", label='mth 900rpm stop [h]')
     plt.fill_between(df['Data_godzina'], df['motogodziny_jazda']+df['motogodziny_900rpm_zabudowa'], df['motogodziny_jazda']+df['motogodziny_900rpm_zabudowa']+df['motogodziny_jalowy'], "blue", label='mth idle [h]')
     
