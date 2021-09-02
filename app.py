@@ -60,7 +60,7 @@ def get_table_download_link(df, nazwa_pliku):
     """
     csv = df.to_csv(header=False)
     b64 = base64.b64encode(csv.encode()).decode()  # some strings <-> bytes conversions necessary here
-    href = f'<a href="data:file/csv;base64,{b64}" download="{nazwa_pliku}.csv">Pobierz statystyki z dnia</a>'
+    href = f'<a href="data:file/csv;base64,{b64}" download="{nazwa_pliku}.csv">Download stats table</a>'
     
     return href
     
@@ -68,26 +68,26 @@ def tabela_statystyk_dnia(df):
     dane_dnia = pd.DataFrame()
 
     # motogodziny
-    dane_dnia['Motogodziny total'] = [df['motogodziny_total'].max()]
-    dane_dnia['Motogodziny idle'] = [df['motogodziny_jalowy'].max()]
-    dane_dnia['Motogodziny 900rpm stop'] = [df['motogodziny_900rpm_zabudowa'].max()]
-    dane_dnia['Motogodziny jazda'] = [df['motogodziny_jazda'].max()]
-    dane_dnia['Motogodziny >26t'] = [df['motogodziny_przeladowana'].max()]
+    dane_dnia['Motohours total'] = [df['motogodziny_total'].max()]
+    dane_dnia['Motohours idle'] = [df['motogodziny_jalowy'].max()]
+    dane_dnia['Motohours 900rpm stop'] = [df['motogodziny_900rpm_zabudowa'].max()]
+    dane_dnia['Motohours driving'] = [df['motogodziny_jazda'].max()]
+    dane_dnia['Motohours >26t'] = [df['motogodziny_przeladowana'].max()]
 
     # przebieg
     dane_dnia['Przebieg [km]'] = [df['przebieg_km'].max()]
     dane_dnia['Przebieg >26t [km]'] = [df['przebieg_km_przeladowana'].max()]
 
     # paliwo
-    dane_dnia['Zużyte paliwo [dm3]'] = [df['Fuel_consumption'].max()]
-    dane_dnia['Przebiegowe zużycie paliwa [dm3/100km]'] = [df['Fuel_consumption'].max()/df['przebieg_km'].max()*100]
-    dane_dnia['Godzinowe zużycie paliwa [dm3/h]'] = [df['Fuel_consumption'].max()/df['motogodziny_total'].max()]
+    dane_dnia['Fuel consumption [dm3]'] = [df['Fuel_consumption'].max()]
+    dane_dnia['Fuel consumption per distance [dm3/100km]'] = [df['Fuel_consumption'].max()/df['przebieg_km'].max()*100]
+    dane_dnia['Hourly fuel consumption [dm3/h]'] = [df['Fuel_consumption'].max()/df['motogodziny_total'].max()]
 
     # energia hydrauliczna
-    dane_dnia['Energia hydrauliczna w ciągu dnia [kJ]'] = [df['hydraulic_energy'].max()]
-    dane_dnia['Energia hydrauliczna zagęszczania [kJ]'] = [df['energia_hydr_zageszczania'].max()]
+    dane_dnia['Hydraulic energy [kJ]'] = [df['hydraulic_energy'].max()]
+    dane_dnia['Compaction hydraulic energy [kJ]'] = [df['energia_hydr_zageszczania'].max()]
 
-    dane_dnia = dane_dnia.T.rename(columns={0:"Wartość"})
+    dane_dnia = dane_dnia.T.rename(columns={0:"Selected day"})
     #dane_dnia.columns = dane_dnia.iloc[0]
     #dane_dnia = dane_dnia.iloc[1:]
     
@@ -103,7 +103,7 @@ im_sketch = "res/sketch_lowres.png"
 im_central = "res/drawing.PNG"
 im_logo = "res/logo_xt.png"
 im_logo2 = "res/logo_zoeller.png"
-im_table = "res/tabelka.PNG"
+im_table = "res/tabelka.png"
 
 sketch = Image.open(im_sketch).convert('RGB')
 central_sketch = Image.open(im_central).convert('RGB')
@@ -117,14 +117,14 @@ tabela_info = Image.open(im_table).convert('RGB')
 c1.title("WIP")
 c1.image(sketch, use_column_width=True)
  
-c1.header("Wybór dnia:")
+c1.header("Day choice:")
 
 data_od = c1.date_input("", value=dt.date(2021,8,3), min_value=dt.date(2021,8,1), max_value=dt.date.today())
 c1.write("------------------")
 #data_do = c1.date_input("To:", min_value=data_od)
 
 ## c2
-c2.markdown("<h1 style='text-align: center; color: black;'>Dashboard Dashboard GPU7RM1</h1>", unsafe_allow_html=True)
+c2.markdown("<h1 style='text-align: center; color: black;'>Dashboard GPU7RM1</h1>", unsafe_allow_html=True)
 #c2.title("Dashboard Dashboard GPU7RM1")
 c2.image(central_sketch, use_column_width=True)
 
@@ -147,12 +147,12 @@ try:
 
     dane_z_dnia = tabela_statystyk_dnia(df)
     
-    c2.write(f"Statystyki z {data_od}:")
+    c2.write(f"Statistics from {data_od}:")
     #c2.dataframe(dane_z_dnia, height=500)
     
    
     c3.table(dane_z_dnia)
-    c1.markdown(get_table_download_link(dane_z_dnia, f'diagnostics_{data_od}'), unsafe_allow_html=True)
+    c1.markdown(get_table_download_link(dane_z_dnia, f'GPU7RM1_stats_{data_od}'), unsafe_allow_html=True)
     
     
     ## WYKRESY ##
@@ -160,7 +160,8 @@ try:
     
     cols = st.columns((1,1,1))
 
-    fig = px.line(df, x='Data_godzina', y='Nacisk_total', title="Nacisk na osie w trakcie dnia")
+    fig = px.line(df, x='Data_godzina', y='Nacisk_total', title="Truck weight during the day",
+                labels={'Data_godzina':"Time", "Nacisk_total":"Total weight"})
     
     
     ## WYKRESY DOLNE ##
@@ -168,19 +169,19 @@ try:
     
     fig_p0, ax_0 = plt.subplots(1, figsize=(8,5))
     plt.plot(df['Data_godzina'], df['Fuel_consumption'])
-    plt.title("Zużycie paliwa", fontsize=24)
+    plt.title("Fuel consumption", fontsize=24)
     ax_0.xaxis.set_major_formatter(xfmt)
     plt.tight_layout()
 
     fig_p1, ax_1 = plt.subplots(1, figsize=(8,5))
     plt.plot(df['Data_godzina'], df['predkosc_osi'])
-    plt.title("Prędkość w trakcie dnia", fontsize=24)
+    plt.title("Velocity", fontsize=24)
     ax_1.xaxis.set_major_formatter(xfmt)
     plt.tight_layout()
 
     fig_p2, ax_2 = plt.subplots(1, figsize=(8,5))
     plt.plot(df['Data_godzina'], df['motogodziny_total'])
-    plt.title("Motogodziny", fontsize=24)
+    plt.title("Motohours during the day", fontsize=24)
     ax_2.xaxis.set_major_formatter(xfmt)
     plt.tight_layout()
 
