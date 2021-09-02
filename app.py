@@ -204,7 +204,7 @@ c1.markdown(get_table_download_link(tabela_statystyk, f'GPU7RM1_stats_{data_od}'
 ## WYKRESY ##
 
 try:
-    x = df
+    x = df.max()
 except NameError:
     try:
         df = download_data(url)
@@ -220,11 +220,12 @@ cols = st.columns((1,1,1))
 if not df.empty:
     ## WYKRESY DOLNE ##
     xfmt = mdates.DateFormatter('%H:%M')
+
     
     # MOTOGODZINY
     fig_p0, ax_0 = plt.subplots(1, figsize=(8,5))
     plt.plot(df['Data_godzina'], df['motogodziny_total'], ls='--', lw=3, c='red', label='mth total [h]')
-    plt.fill_between(df['Data_godzina'], df['motogodziny_jazda'], 0, color="green", label='mth driving [h]')
+    plt.fill_between(df['Data_godzina'], 0, df['motogodziny_jazda'], color="green", label='mth driving [h]')
     plt.fill_between(df['Data_godzina'], df['motogodziny_jazda'], df['motogodziny_jazda']+df['motogodziny_900rpm_zabudowa'], color="orange", label='mth 900rpm stop [h]')
     plt.fill_between(df['Data_godzina'], df['motogodziny_jazda']+df['motogodziny_900rpm_zabudowa'], df['motogodziny_jazda']+df['motogodziny_900rpm_zabudowa']+df['motogodziny_jalowy'], color="blue", label='mth idle [h]')
     
