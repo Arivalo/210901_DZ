@@ -103,7 +103,7 @@ im_sketch = "res/sketch_lowres.png"
 im_central = "res/drawing.PNG"
 im_logo = "res/logo_xt.png"
 im_logo2 = "res/logo_zoeller.png"
-im_table = "res/tabelka.png"
+im_table = "res/tabelka.PNG"
 
 sketch = Image.open(im_sketch).convert('RGB')
 central_sketch = Image.open(im_central).convert('RGB')
