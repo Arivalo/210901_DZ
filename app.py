@@ -12,7 +12,7 @@ from funkcje import *
 import matplotlib.dates as mdates
 
 
-@st.cache(suppress_st_warning=True)
+@st.cache(suppress_st_warning=True, allow_output_mutation=True)
 def download_data(url, haslo=st.secrets['password'], login=st.secrets['username'], retry=5):
 
     i = 0
@@ -254,7 +254,7 @@ if not df.empty:
     ax_2.xaxis.set_major_formatter(xfmt)
     plt.grid()
     plt.tight_layout()
-    plt.legend()
+    #plt.legend()
 
     #c2.plotly_chart(fig)
 
@@ -269,7 +269,7 @@ if not df.empty:
     plt.bar([1,2,3], [2,3,1])
     plt.grid()
     plt.tight_layout()
-    plt.legend()
+    #plt.legend()
     cols[1].write(fig_q0)
     
     fig_r0 = plt.figure(figsize=(8,5))
@@ -277,7 +277,7 @@ if not df.empty:
     plt.bar([1,2,3, 4, 5], [1,2,4,2,1])
     plt.grid()
     plt.tight_layout()
-    plt.legend()
+    #plt.legend()
     cols[2].write(fig_r0)
     
     
