@@ -99,6 +99,13 @@ def tabela_statystyk_dnia(df):
     #dane_dnia = dane_dnia.iloc[1:]
     
     return dane_dnia.round(1).astype(str)
+
+@st.cache(suppress_st_warning=True, allow_output_mutation=True)
+def wczytaj_statystyki_csv(loc):
+
+    df = pd.read_csv(loc, index_col=0)
+    
+    return df
     
 def stworz_tabele_statystyk(df, data):
     # usuwanie kolumn z samymi 0
@@ -121,7 +128,18 @@ def stworz_tabele_statystyk(df, data):
     
     df_out['total'] = df.sum(axis=1)
     
-    return df_out.fillna(0).round(1).astype(str)
+    df_out = df_out.fillna(0).round(1)
+    
+    # usuwanie statystyk gdzie total nie ma sensu
+    df_out['total'].T['Fuel consumption per distance [dm3/100km]'] = "-"
+    df_out['total'].T['Hourly fuel consumption [dm3/h]'] = "-"
+    
+    # fake statystyki
+    df_out.loc['Average of rpm engine per day'] = "-"
+    df_out.loc['Leakage cylinder detection'] = "-"
+    df_out.loc['Time with oil over 60°C [h]'] = "-"
+    
+    return df_out.astype(str)
     
     
 def wykres_z_tygodnia(df, data, lista_kolumn, lista_etykiet, title=""):
@@ -132,12 +150,15 @@ def wykres_z_tygodnia(df, data, lista_kolumn, lista_etykiet, title=""):
     
     previous = [0 for x in range(7)]
     
+    ax.bar(data, df[str(data)].T["Motohours total"].max()+0.18, width=1, color="yellow", label="Selected day",
+            alpha=0.6)
+    
     for kolumna, label in zip(lista_kolumn, lista_etykiet):
     
         temp_y = df[dni_tydzien].T[kolumna]
-        ax.bar(dni_tydzien,  temp_y, label=label, bottom=previous)
+        ax.bar(dni_tydzien,  temp_y, width=0.67,  label=label, bottom=previous)
         previous = [x+y for x,y in zip(previous, temp_y)]
-        
+          
     ax.legend()
     plt.title(title, fontsize=24)
     plt.grid()
@@ -158,8 +179,8 @@ c1, c2, c3 = st.columns((1,2,1))
 # lokacje plikow
 im_sketch = "res/sketch_lowres.png"
 im_central = "res/drawing.PNG"
-im_logo = "res/logo_xt.png"
-im_logo2 = "res/logo_zoeller.png"
+im_logo2 = "res/logo_faun.png"
+im_logo = "res/logo_zoeller_new.png"
 im_table = "res/tabelka.PNG"
 table_stats = "data/tabela_sierpien.csv"
 
@@ -169,7 +190,7 @@ central_sketch = Image.open(im_central).convert('RGB')
 xt_logo = Image.open(im_logo).convert('RGB')
 zoe_logo = Image.open(im_logo2).convert('RGB')
 tabela_info = Image.open(im_table).convert('RGB')
-df_stats = pd.read_csv(table_stats, index_col=0)
+df_stats = wczytaj_statystyki_csv(table_stats)
 
 
 ### HEADER ###
@@ -195,7 +216,7 @@ c2.image(central_sketch, use_column_width=True)
 #c3.title("WIP")
 c3.image(xt_logo, use_column_width=True)
 c3.image(zoe_logo, use_column_width=True)
-c3.image(tabela_info, use_column_width=True)
+c2.image(tabela_info, use_column_width=True)
 
 
 ### MAIN ###
@@ -218,7 +239,7 @@ else:
         dane_z_dnia = df_stats[df_stats.columns[0]].copy().rename({df_stats.columns[0]:"Selected day"})
         dane_z_dnia["Selected day"] = 0
 
-c2.write(f"Statistics from {data_od}:")
+c3.write(f"Statistics from {data_od}")
 #c2.dataframe(dane_z_dnia, height=500)
 
 
