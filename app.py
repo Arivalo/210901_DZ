@@ -11,6 +11,13 @@ from PIL import Image
 from funkcje import *
 import matplotlib.dates as mdates
 
+## TO DO ##
+# tabela
+# - oddzielenia tematyczne w tabeli - mth, dist, itp
+# - % udzialy np. mth idle w total
+# inne
+# - wskaźnik obciążenia
+
 
 @st.cache(suppress_st_warning=True, allow_output_mutation=True)
 def download_data(url, haslo=st.secrets['password'], login=st.secrets['username'], retry=5):
@@ -104,21 +111,46 @@ def stworz_tabele_statystyk(df, data):
     df_out = pd.DataFrame()
     
     try:
-        df_out['Day'] = df[str(data)]
+        df_out['selected day'] = df[str(data)]
     except KeyError:
-        df_out['Day'] = 0.0
+        df_out['selected day'] = 0.0
     
-    df_out['Week'] = df[dni_tydzien].median(axis=1)
+    df_out['avg. week'] = df[dni_tydzien].mean(axis=1)
     
-    df_out['Month'] = df.median(axis=1)
+    df_out['avg. month'] = df.mean(axis=1)
+    
+    df_out['total'] = df.sum(axis=1)
     
     return df_out.fillna(0).round(1).astype(str)
+    
+    
+def wykres_z_tygodnia(df, data, lista_kolumn, lista_etykiet, title=""):
+    
+    fig, ax = plt.subplots(1, figsize=(8,5))
+    
+    dni_tydzien = [str(data + dt.timedelta(days=d-data.weekday())) for d in range(7)]
+    
+    previous = [0 for x in range(7)]
+    
+    for kolumna, label in zip(lista_kolumn, lista_etykiet):
+    
+        temp_y = df[dni_tydzien].T[kolumna]
+        ax.bar(dni_tydzien,  temp_y, label=label, bottom=previous)
+        previous = [x+y for x,y in zip(previous, temp_y)]
+        
+    ax.legend()
+    plt.title(title, fontsize=24)
+    plt.grid()
+    plt.tight_layout()
+    
+    return fig
+    
     
 ######################################################################################################################
 
 st.set_page_config(layout="wide")
 
-st.markdown("<h1 style='text-align: center; color: black;'>Dashboard GPU7RM1</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: black;'>FQN9002</h1>", unsafe_allow_html=True)
 
 c1, c2, c3 = st.columns((1,2,1))
 
@@ -146,7 +178,7 @@ df_stats = pd.read_csv(table_stats, index_col=0)
 c1.title("WIP")
 c1.image(sketch, use_column_width=True)
  
-c1.header("Day choice:")
+c1.header("Select day:")
 
 data_od = c1.date_input("", value=dt.date(2021,8,3), min_value=dt.date(2021,8,1), max_value=dt.date.today())
 c1.write("------------------")
@@ -186,7 +218,7 @@ else:
         dane_z_dnia = df_stats[df_stats.columns[0]].copy().rename({df_stats.columns[0]:"Selected day"})
         dane_z_dnia["Selected day"] = 0
 
-c2.write(f"Statistics from {data_od} (aggregates as median, only working days):")
+c2.write(f"Statistics from {data_od}:")
 #c2.dataframe(dane_z_dnia, height=500)
 
 
@@ -264,11 +296,7 @@ if not df.empty:
     cols[0].write(fig_p2)
     
     # temp
-    fig_q0 = plt.figure(figsize=(8,5))
-    plt.title("Weekly data (PLACEHOLDER)", fontsize=24)
-    plt.bar([1,2,3], [2,3,1])
-    plt.grid()
-    plt.tight_layout()
+    fig_q0 = wykres_z_tygodnia(df_stats, data_od, ["Motohours idle", "Motohours 900rpm stop", "Motohours driving"], ["Motohours idle", "Motohours 900rpm stop", "Motohours driving"], title="Weekly data")
     #plt.legend()
     cols[1].write(fig_q0)
     
@@ -283,5 +311,15 @@ if not df.empty:
     
     #cols[2].plotly_chart(fig)
 
+# TYMCZASOWY WYKRES OBCIĄŻENIA OSI
+    fig, ax = plt.subplots(1, figsize=(8,5))
+    plt.plot(df['Data_godzina'], df['Nacisk_total'], lw=3, label='mth total [h]')
+    plt.ylabel("Load", fontsize=24)
+    ax.xaxis.set_major_formatter(xfmt)
+    plt.grid()
+    plt.tight_layout()
+    #plt.legend()
     
-
+    cols[0].write(fig)
+    
+#st.write(df.columns)
