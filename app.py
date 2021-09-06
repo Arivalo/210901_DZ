@@ -336,16 +336,12 @@ if not df.empty:
     plt.barh([-0.5+x for x in range(1,bins)], hist, edgecolor='black', height=1)
     
     mth_today = dane_z_dnia.T["Motohours total"]
-    plt.barh(np.ceil(mth_today)-0.5, hist[int(np.ceil(mth_today))-1], height=1, edgecolor='black')
+    plt.barh(np.ceil(mth_today)-0.5, hist[int(np.ceil(mth_today))-1], height=1, edgecolor='black', label="Selected day")
     
-    
-    st.write(bin_edges)
-    st.write(hist)
-    
-    #plt.grid()
+    plt.grid()
     plt.xlabel("Amount of days")
     plt.tight_layout()
-    #plt.legend()
+    plt.legend()
     cols[2].write(fig_r0)
     
     
