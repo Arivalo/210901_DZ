@@ -17,6 +17,7 @@ import matplotlib.dates as mdates
 # - % udzialy np. mth idle w total
 # inne
 # - wskaźnik obciążenia
+# - wymuszanie jasnego motywu
 
 
 @st.cache(suppress_st_warning=True, allow_output_mutation=True)
@@ -201,7 +202,7 @@ c1.image(sketch, use_column_width=True)
  
 c1.header("Select day:")
 
-data_od = c1.date_input("", value=dt.date(2021,8,3), min_value=dt.date(2021,8,1), max_value=dt.date.today())
+data_od = c1.date_input("", value=dt.date(2021,8,3), min_value=dt.date(2021,8,1), max_value=dt.date.today(), help="Choose day you want to analyze")
 c1.write("------------------")
 #data_do = c1.date_input("To:", min_value=data_od)
 
@@ -274,7 +275,7 @@ if not df.empty:
     ## WYKRESY DOLNE ##
     xfmt = mdates.DateFormatter('%H:%M')
 
-    
+    ## DAILY
     # MOTOGODZINY
     fig_p0, ax_0 = plt.subplots(1, figsize=(8,5))
     plt.plot(df['Data_godzina'], df['motogodziny_total'], ls='--', lw=3, c='red', label='mth total [h]')
@@ -316,15 +317,33 @@ if not df.empty:
     cols[0].write(fig_p1)
     cols[0].write(fig_p2)
     
-    # temp
+    ## WEEKLY
+    # MOTOGODZINY
     fig_q0 = wykres_z_tygodnia(df_stats, data_od, ["Motohours idle", "Motohours 900rpm stop", "Motohours driving"], ["Motohours idle", "Motohours 900rpm stop", "Motohours driving"], title="Weekly data")
     #plt.legend()
     cols[1].write(fig_q0)
     
+    ## NORMAL DISTRIBUTION
+    # MOTOGODZINY
     fig_r0 = plt.figure(figsize=(8,5))
-    plt.title("Normal distribution (PLACEHOLDER)", fontsize=24)
-    plt.bar([1,2,3, 4, 5], [1,2,4,2,1])
-    plt.grid()
+    plt.title("Distribution", fontsize=24)
+    mth_data = df_stats.T['Motohours total'].values
+    #n, bins, patches = plt.hist(mth_data, bins='auto', orientation='horizontal', edgecolor='black')
+    
+    bins = int(np.ceil(max(mth_data)))
+    hist, bin_edges = np.histogram(mth_data, bins=[x for x in range(bins)])
+    
+    plt.barh([-0.5+x for x in range(1,bins)], hist, edgecolor='black', height=1)
+    
+    mth_today = dane_z_dnia.T["Motohours total"]
+    plt.barh(np.ceil(mth_today)-0.5, hist[int(np.ceil(mth_today))-1], height=1, edgecolor='black')
+    
+    
+    st.write(bin_edges)
+    st.write(hist)
+    
+    #plt.grid()
+    plt.xlabel("Amount of days")
     plt.tight_layout()
     #plt.legend()
     cols[2].write(fig_r0)
