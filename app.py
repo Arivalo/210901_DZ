@@ -108,6 +108,7 @@ def wczytaj_statystyki_csv(loc):
     
     return df
     
+
 def stworz_tabele_statystyk(df, data):
     # usuwanie kolumn z samymi 0
     df = df.loc[:, (df != 0).any(axis=0)]
@@ -135,10 +136,46 @@ def stworz_tabele_statystyk(df, data):
     df_out['total'].T['Fuel consumption per distance [dm3/100km]'] = "-"
     df_out['total'].T['Hourly fuel consumption [dm3/h]'] = "-"
     
+    ## %%
+    # daily
+    mth_total = df_out['selected day'].T['Motohours total']
+    distance_total = df_out['selected day'].T['Distance [km]']
+    hyd_en_total = df_out['selected day'].T['Hydraulic energy [kJ]']
+    
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total]
+    
+    percentage_daily = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['selected day'].values, dividers)]
+    
+    df_out["%"] = percentage_daily
+    
+    # weekly
+    mth_total = df_out['avg. week'].T['Motohours total']
+    distance_total = df_out['avg. week'].T['Distance [km]']
+    hyd_en_total = df_out['avg. week'].T['Hydraulic energy [kJ]']
+    
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total]
+    
+    percentage_weekly = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['avg. week'].values, dividers)]
+    
+    df_out["% "] = percentage_weekly
+    
+    # monthly
+    mth_total = df_out['avg. month'].T['Motohours total']
+    distance_total = df_out['avg. month'].T['Distance [km]']
+    hyd_en_total = df_out['avg. month'].T['Hydraulic energy [kJ]']
+    
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total]
+    
+    percentage_monthly = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['avg. month'].values, dividers)]
+    
+    df_out[" %"] = percentage_monthly
+    
     # fake statystyki
     df_out.loc['Average of rpm engine per day'] = "-"
     df_out.loc['Leakage cylinder detection'] = "-"
     df_out.loc['Time with oil over 60°C [h]'] = "-"
+    
+    df_out = df_out[['selected day', '%', 'avg. week', '% ', 'avg. month', ' %', 'total']]
     
     return df_out.astype(str)
     
@@ -147,6 +184,8 @@ def wykres_z_tygodnia(df, data, lista_kolumn, lista_etykiet, title=""):
     
     fig, ax = plt.subplots(1, figsize=(8,5))
     
+    colors = ['green', 'orange', 'blue', 'yellow', 'magenta', 'purple', 'cyan']
+    
     dni_tydzien = [str(data + dt.timedelta(days=d-data.weekday())) for d in range(7)]
     
     previous = [0 for x in range(7)]
@@ -154,11 +193,32 @@ def wykres_z_tygodnia(df, data, lista_kolumn, lista_etykiet, title=""):
     ax.bar(data, df[str(data)].T["Motohours total"].max()+0.18, width=1, color="yellow", label="Selected day",
             alpha=0.6)
     
+    for kolumna, label, color in zip(lista_kolumn, lista_etykiet, colors):
+    
+        temp_y = df[dni_tydzien].T[kolumna]
+        ax.bar(dni_tydzien,  temp_y, width=0.67,  label=label, bottom=previous, color=color)
+        previous = [x+y for x,y in zip(previous, temp_y)]
+          
+    ax.legend()
+    plt.title(title, fontsize=24)
+    plt.grid()
+    plt.tight_layout()
+    
+    return fig
+    
+def wykres_z_tygodnia2(df, data, lista_kolumn, lista_etykiet, title=""):
+    
+    fig, ax = plt.subplots(1, figsize=(8,5))
+    
+    dni_tydzien = [str(data + dt.timedelta(days=d-data.weekday())) for d in range(7)]
+    
+    ax.bar(data, df[str(data)].T[lista_kolumn[0]].max()*1.1, width=1, color="yellow", label="Selected day",
+            alpha=0.6)
+    
     for kolumna, label in zip(lista_kolumn, lista_etykiet):
     
         temp_y = df[dni_tydzien].T[kolumna]
-        ax.bar(dni_tydzien,  temp_y, width=0.67,  label=label, bottom=previous)
-        previous = [x+y for x,y in zip(previous, temp_y)]
+        ax.bar(dni_tydzien,  temp_y, width=0.67,  label=label)
           
     ax.legend()
     plt.title(title, fontsize=24)
@@ -174,7 +234,7 @@ st.set_page_config(layout="wide")
 
 st.markdown("<h1 style='text-align: center; color: black;'>FQN9002</h1>", unsafe_allow_html=True)
 
-c1, c2, c3 = st.columns((1,2,1))
+
 
 
 # lokacje plikow
@@ -195,6 +255,8 @@ df_stats = wczytaj_statystyki_csv(table_stats)
 
 
 ### HEADER ###
+
+c1, c2, c3 = st.columns((1,3,1))
 
 ## c1
 c1.title("WIP")
@@ -319,15 +381,25 @@ if not df.empty:
     
     ## WEEKLY
     # MOTOGODZINY
-    fig_q0 = wykres_z_tygodnia(df_stats, data_od, ["Motohours idle", "Motohours 900rpm stop", "Motohours driving"], ["Motohours idle", "Motohours 900rpm stop", "Motohours driving"], title="Weekly data")
+    fig_q0 = wykres_z_tygodnia(df_stats, data_od, ["Motohours driving", "Motohours 900rpm stop", "Motohours idle"], ["Motohours driving", "Motohours 900rpm stop", "Motohours idle"], title="Weekly data")
     #plt.legend()
     cols[1].write(fig_q0)
+    
+    # MOTOGODZINY PRZELADOWANY
+    fig_q1 = wykres_z_tygodnia2(df_stats, data_od, ["Motohours total", "Motohours >26t"], ["Motohours total", "Motohours >26t"])
+    #plt.legend()
+    cols[1].write(fig_q1)
+    
+    # DYSTANS
+    fig_q2 = wykres_z_tygodnia2(df_stats, data_od, ["Distance [km]", "Distance >26t [km]"], ["Distance [km]", "Distance >26t [km]"])
+    #plt.legend()
+    cols[1].write(fig_q2)
     
     ## NORMAL DISTRIBUTION
     # MOTOGODZINY
     fig_r0 = plt.figure(figsize=(8,5))
     plt.title("Distribution", fontsize=24)
-    mth_data = df_stats.T['Motohours total'].values
+    mth_data = df_stats.T['Motohours total'].copy().values
     #n, bins, patches = plt.hist(mth_data, bins='auto', orientation='horizontal', edgecolor='black')
     
     bins = int(np.ceil(max(mth_data)))
@@ -359,3 +431,20 @@ if not df.empty:
     cols[0].write(fig)
     
 #st.write(df.columns)
+
+## TABELKA PM
+
+column, _ = st.columns((1, 1))
+
+column.header("Diagnostics")
+
+tabela_pm = go.Figure(data=[go.Table(header=dict(values=[' ', 'diagnosis'], font=dict(color='black', size=20), height=36),
+                 cells=dict(values=[["PP joint", "CP sliding blocks", "CP rollers", "Hydraulic leakages", "Gresing system"], ["OK", "OK", "OK", "OK", "OK"]], 
+                 fill=dict(color=['paleturquoise', 'lime']), 
+                 font_size=16,
+                 height=30
+                 ))
+                     ])
+
+column.plotly_chart(tabela_pm)
+
