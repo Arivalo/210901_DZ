@@ -16,8 +16,9 @@ import matplotlib.dates as mdates
 # - oddzielenia tematyczne w tabeli - mth, dist, itp
 # - % udzialy np. mth idle w total
 # inne
-# - wskaźnik obciążenia
+# - wskaźnik obciążenia - przeciążenie over 26t
 # - wymuszanie jasnego motywu
+# - wykresy dla przeciążeń - dodanie nowego parametru
 
 
 @st.cache(suppress_st_warning=True, allow_output_mutation=True)
@@ -142,7 +143,7 @@ def stworz_tabele_statystyk(df, data):
     distance_total = df_out['selected day'].T['Distance [km]']
     hyd_en_total = df_out['selected day'].T['Hydraulic energy [kJ]']
     
-    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total]
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1]
     
     percentage_daily = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['selected day'].values, dividers)]
     
@@ -153,7 +154,7 @@ def stworz_tabele_statystyk(df, data):
     distance_total = df_out['avg. week'].T['Distance [km]']
     hyd_en_total = df_out['avg. week'].T['Hydraulic energy [kJ]']
     
-    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total]
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1]
     
     percentage_weekly = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['avg. week'].values, dividers)]
     
@@ -164,7 +165,7 @@ def stworz_tabele_statystyk(df, data):
     distance_total = df_out['avg. month'].T['Distance [km]']
     hyd_en_total = df_out['avg. month'].T['Hydraulic energy [kJ]']
     
-    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total]
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1]
     
     percentage_monthly = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['avg. month'].values, dividers)]
     
@@ -226,6 +227,47 @@ def wykres_z_tygodnia2(df, data, lista_kolumn, lista_etykiet, title=""):
     plt.tight_layout()
     
     return fig
+    
+    
+def tabela_statystyk_wyswietl(df):
+
+    df = df.reset_index().rename(columns={'index':""})
+    
+    df[""] = [f"<b>{val}</b>" for val in df[""]]
+    
+    df["selected day"] = [f"{val} <i><sub>{percent}</sub></i>" if percent!="-"  else val for val, percent in zip(df["selected day"], df["%"])]
+    
+    df["avg. week"] = [f"{val} <i><sub>{percent}</sub></i>" if percent!="-"  else val for val, percent in zip(df["avg. week"], df["% "])]
+    
+    df["avg. month"] = [f"{val} <i><sub>{percent}</sub></i>" if percent!="-"  else val for val, percent in zip(df["avg. month"], df[" %"])]
+    
+    df = df[["", "selected day", "avg. week", "avg. month", "total"]]
+    
+    fig = go.Figure(data=[go.Table(
+    columnwidth = [200, 100, 100, 100, 90],
+    header=dict(values=list([f"<b>{col}</b>" for col in df.columns]),
+                fill_color='gray',
+                line_color='darkslategray',
+                align=["left", 'center', 'center', 'center', 'center', 'center', 'center', 'center', ],
+                font=dict(color='white', size=14),),
+    cells=dict(values=[df[col] for col in df.columns],
+               align=["left", 'center', 'center', 'center', 'center', 'center', 'center', 'center', ],
+               line_color='darkslategray',
+               fill_color=[["seashell", "seashell", "seashell", "seashell", "seashell",
+               "silver", "silver",
+               "mintcream", "mintcream", "mintcream",
+               "lemonchiffon", "lemonchiffon",
+               "mistyrose",
+               "honeydew", "honeydew", "honeydew", ]*5],
+               font=dict(size=12),))
+    ])
+    
+    
+    fig.update_layout(height=850)
+    
+    return fig
+
+    
     
     
 ######################################################################################################################
@@ -310,7 +352,12 @@ c3.write(f"Statistics from {data_od}")
 
 tabela_statystyk = stworz_tabele_statystyk(df_stats, data_od)
 
-c2.table(tabela_statystyk)
+stat_fig = tabela_statystyk_wyswietl(tabela_statystyk)
+
+c2.plotly_chart(stat_fig, use_container_width=True)
+
+#c2.table(tabela_statystyk)
+
 c1.markdown(get_table_download_link(tabela_statystyk, f'GPU7RM1_stats_{data_od}'), unsafe_allow_html=True)
 
 # c2.table(tabela_statystyk)
@@ -420,15 +467,26 @@ if not df.empty:
     #cols[2].plotly_chart(fig)
 
 # TYMCZASOWY WYKRES OBCIĄŻENIA OSI
-    fig, ax = plt.subplots(1, figsize=(8,5))
+    fig_s0, ax_s0 = plt.subplots(1, figsize=(8,5))
     plt.plot(df['Data_godzina'], df['Nacisk_total'], lw=3, label='mth total [h]')
     plt.ylabel("Load", fontsize=24)
-    ax.xaxis.set_major_formatter(xfmt)
+    ax_s0.xaxis.set_major_formatter(xfmt)
+    plt.axhline(26000, c='r', ls='--')
     plt.grid()
     plt.tight_layout()
     #plt.legend()
     
-    cols[0].write(fig)
+    cols[0].write(fig_s0)
+    
+# WEEKLY OBCIĄŻENIA
+
+    fig_s1 = wykres_z_tygodnia2(df_stats, data_od, ["Max overload >26t [t]"], ["Max overload >26t [t]"])
+    #plt.legend()
+    plt.ylabel("Overload [t]")
+    plt.tight_layout()
+    cols[1].write(fig_s1)
+
+    
     
 #st.write(df.columns)
 
