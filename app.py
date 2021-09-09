@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from funkcje import *
 import matplotlib.dates as mdates
+from matplotlib.ticker import MaxNLocator
 
 ## TO DO ##
 # tabela
@@ -136,6 +137,7 @@ def stworz_tabele_statystyk(df, data):
     # usuwanie statystyk gdzie total nie ma sensu
     df_out['total'].T['Fuel consumption per distance [dm3/100km]'] = "-"
     df_out['total'].T['Hourly fuel consumption [dm3/h]'] = "-"
+    df_out['total'].T['Max overload >26t [t]'] = "-"
     
     ## %%
     # daily
@@ -263,10 +265,61 @@ def tabela_statystyk_wyswietl(df):
     ])
     
     
-    fig.update_layout(height=950)
+    #fig.update_layout(height=950)
     
     return fig
 
+
+def wykres_dystrybucja(df, dane_z_dnia, kolumna):
+
+    fig, ax = plt.subplots(1, figsize=(8,5))
+    
+    data = df.T[kolumna].copy().values
+    #n, bins, patches = plt.hist(mth_data, bins='auto', orientation='horizontal', edgecolor='black')
+    
+    bins = int(np.ceil(max(data)))
+    hist, bin_edges = np.histogram(data, bins=[x for x in range(bins)])
+    
+    plt.barh([-0.5+x for x in range(1,bins)], hist, edgecolor='black', height=1)
+    
+    data_today = dane_z_dnia.T[kolumna]
+    plt.barh(np.ceil(data_today)-0.5, hist[int(np.ceil(data_today))-1], height=1, edgecolor='black', label="Selected day")
+    
+    plt.grid()
+    plt.xlabel("Amount of days")
+    plt.tight_layout()
+    plt.legend()
+    
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+    
+    return fig
+    
+    
+def wykres_dystrybucja2(df, dane_z_dnia, kolumna):
+
+    fig, ax = plt.subplots(1, figsize=(8,5))
+    
+    data = df.T[kolumna].copy().values
+    #n, bins, patches = plt.hist(mth_data, bins='auto', orientation='horizontal', edgecolor='black')
+    
+    bins = int(np.ceil(max(data))/20)
+    hist, bin_edges = np.histogram(data, bins=[x*20 for x in range(bins)])
+    
+    plt.barh([(-0.5+x)*20 for x in range(1,bins)], hist, edgecolor='black', height=20)
+    
+    data_today = dane_z_dnia.T[kolumna]
+    plt.barh((np.ceil(data_today/20)*20-10), hist[int(np.floor(data_today)/20)], height=20, edgecolor='black', label="Selected day")
+    
+    plt.grid()
+    plt.xlabel("Amount of days")
+    plt.tight_layout()
+    plt.legend()
+    
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+    
+    return fig
     
     
     
@@ -304,10 +357,7 @@ c1, c2, c3 = st.columns((1,3,1))
 c1.title("WIP")
 c1.image(sketch, use_column_width=True)
  
-c1.header("Select day:")
 
-data_od = c1.date_input("", value=dt.date(2021,8,3), min_value=dt.date(2021,8,1), max_value=dt.date.today(), help="Choose day you want to analyze")
-c1.write("------------------")
 #data_do = c1.date_input("To:", min_value=data_od)
 
 ## c2
@@ -315,13 +365,23 @@ c1.write("------------------")
 #c2.title("Dashboard Dashboard GPU7RM1")
 c2.image(central_sketch, use_column_width=True)
 
+c2.image(tabela_info, use_column_width=True)
 
 
 ## c3
 #c3.title("WIP")
 c3.image(xt_logo, use_column_width=True)
 c3.image(zoe_logo, use_column_width=True)
-c2.image(tabela_info, use_column_width=True)
+
+
+
+c1, c2, c3 = st.columns((1,5,1))
+
+## c1
+c1.header("Select day:")
+
+data_od = c1.date_input("", value=dt.date(2021,8,3), min_value=dt.date(2021,8,1), max_value=dt.date.today(), help="Choose day you want to analyze")
+c1.write("------------------")
 
 
 ### MAIN ###
@@ -344,7 +404,7 @@ else:
         dane_z_dnia = df_stats[df_stats.columns[0]].copy().rename({df_stats.columns[0]:"Selected day"})
         dane_z_dnia["Selected day"] = 0
 
-c3.write(f"Statistics from {data_od}")
+#c3.write(f"Statistics from {data_od}")
 #c2.dataframe(dane_z_dnia, height=500)
 
 
@@ -444,24 +504,21 @@ if not df.empty:
     
     ## NORMAL DISTRIBUTION
     # MOTOGODZINY
-    fig_r0 = plt.figure(figsize=(8,5))
+    
+    fig_r0 = wykres_dystrybucja(df_stats, dane_z_dnia, "Motohours total")
     plt.title("Distribution", fontsize=24)
-    mth_data = df_stats.T['Motohours total'].copy().values
-    #n, bins, patches = plt.hist(mth_data, bins='auto', orientation='horizontal', edgecolor='black')
-    
-    bins = int(np.ceil(max(mth_data)))
-    hist, bin_edges = np.histogram(mth_data, bins=[x for x in range(bins)])
-    
-    plt.barh([-0.5+x for x in range(1,bins)], hist, edgecolor='black', height=1)
-    
-    mth_today = dane_z_dnia.T["Motohours total"]
-    plt.barh(np.ceil(mth_today)-0.5, hist[int(np.ceil(mth_today))-1], height=1, edgecolor='black', label="Selected day")
-    
-    plt.grid()
-    plt.xlabel("Amount of days")
     plt.tight_layout()
-    plt.legend()
     cols[2].write(fig_r0)
+    
+    # MOTOGODZINY >26t
+    fig_r1 = wykres_dystrybucja(df_stats, dane_z_dnia, "Motohours >26t")
+    cols[2].write(fig_r1)
+    
+    # DYSTANS
+    fig_r2 = wykres_dystrybucja2(df_stats, dane_z_dnia, "Distance [km]")
+    cols[2].write(fig_r2)
+    
+
     
     
     #cols[2].plotly_chart(fig)
@@ -485,6 +542,11 @@ if not df.empty:
     plt.ylabel("Overload [t]")
     plt.tight_layout()
     cols[1].write(fig_s1)
+    
+# DYSTRYBUCJA
+
+    fig_s2 = wykres_dystrybucja(df_stats, dane_z_dnia, "Max overload >26t [t]")
+    cols[2].write(fig_s2)
 
     
     
@@ -505,4 +567,3 @@ tabela_pm = go.Figure(data=[go.Table(header=dict(values=[' ', 'diagnosis'], font
                      ])
 
 column.plotly_chart(tabela_pm)
-
