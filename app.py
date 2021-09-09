@@ -235,11 +235,11 @@ def tabela_statystyk_wyswietl(df):
     
     df[""] = [f"<b>{val}</b>" for val in df[""]]
     
-    df["selected day"] = [f"{val} <i><sub>{percent}</sub></i>" if percent!="-"  else val for val, percent in zip(df["selected day"], df["%"])]
+    df["selected day"] = [f"{val} <sub>{percent}</sub>" if percent!="-"  else val for val, percent in zip(df["selected day"], df["%"])]
     
-    df["avg. week"] = [f"{val} <i><sub>{percent}</sub></i>" if percent!="-"  else val for val, percent in zip(df["avg. week"], df["% "])]
+    df["avg. week"] = [f"{val} <sub>{percent}</sub>" if percent!="-"  else val for val, percent in zip(df["avg. week"], df["% "])]
     
-    df["avg. month"] = [f"{val} <i><sub>{percent}</sub></i>" if percent!="-"  else val for val, percent in zip(df["avg. month"], df[" %"])]
+    df["avg. month"] = [f"{val} <sub>{percent}</sub>" if percent!="-"  else val for val, percent in zip(df["avg. month"], df[" %"])]
     
     df = df[["", "selected day", "avg. week", "avg. month", "total"]]
     
@@ -249,17 +249,17 @@ def tabela_statystyk_wyswietl(df):
                 fill_color='gray',
                 line_color='darkslategray',
                 align=["left", 'center', 'center', 'center', 'center', 'center', 'center', 'center', ],
-                font=dict(color='white', size=14),),
+                font=dict(color='white', size=16),),
     cells=dict(values=[df[col] for col in df.columns],
                align=["left", 'center', 'center', 'center', 'center', 'center', 'center', 'center', ],
                line_color='darkslategray',
                fill_color=[["seashell", "seashell", "seashell", "seashell", "seashell",
-               "silver", "silver",
+               "honeydew", "honeydew",
                "mintcream", "mintcream", "mintcream",
                "lemonchiffon", "lemonchiffon",
                "mistyrose",
-               "honeydew", "honeydew", "honeydew", ]*5],
-               font=dict(size=12),))
+               "floralwhite", "floralwhite", "floralwhite", ]*5],
+               font=dict(size=14),))
     ])
     
     
