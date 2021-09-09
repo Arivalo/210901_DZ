@@ -277,13 +277,13 @@ def wykres_dystrybucja(df, dane_z_dnia, kolumna):
     data = df.T[kolumna].copy().values
     #n, bins, patches = plt.hist(mth_data, bins='auto', orientation='horizontal', edgecolor='black')
     
-    bins = int(np.ceil(max(data)))
+    bins = int(np.ceil(max(data)))+1
     hist, bin_edges = np.histogram(data, bins=[x for x in range(bins)])
     
     plt.barh([-0.5+x for x in range(1,bins)], hist, edgecolor='black', height=1)
     
     data_today = dane_z_dnia.T[kolumna]
-    plt.barh(np.ceil(data_today)-0.5, hist[int(np.ceil(data_today))-1], height=1, edgecolor='black', label="Selected day")
+    plt.barh(np.ceil(data_today)-0.5, hist[min(int(np.ceil(data_today))-1, len(hist)-1)], height=1, edgecolor='black', label="Selected day")
     
     plt.grid()
     plt.xlabel("Amount of days")
