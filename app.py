@@ -529,7 +529,7 @@ if not df.empty:
 
 # TYMCZASOWY WYKRES OBCIĄŻENIA OSI
     fig_s0, ax_s0 = plt.subplots(1, figsize=(8,5))
-    plt.plot(df['Data_godzina'], df['Nacisk_total'], lw=3, label='mth total [h]')
+    plt.plot(df[df['RPM'] > 800]['Data_godzina'], df[df['RPM'] > 800]['Nacisk_total'], lw=3, label='mth total [h]')
     plt.ylabel("Load", fontsize=24)
     ax_s0.xaxis.set_major_formatter(xfmt)
     plt.axhline(26000, c='r', ls='--')
