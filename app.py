@@ -233,9 +233,13 @@ def wykres_z_tygodnia2(df, data, lista_kolumn, lista_etykiet, title=""):
     
 def tabela_statystyk_wyswietl(df):
 
+    def my_value(number):
+        return ("{:,}".format(number))
+
     df = df.reset_index().rename(columns={'index':""})
     
     df[""] = [f"<b>{val}</b>" for val in df[""]]
+    df["total"] = ["{:,}".format(float(number)) if number !="-" else "-" for number in df["total"]]
     
     df["selected day"] = [f"{val} <sub>{percent}</sub>" if percent!="-"  else val for val, percent in zip(df["selected day"], df["%"])]
     
@@ -554,9 +558,9 @@ if not df.empty:
 
 ## TABELKA PM
 
-column, _ = st.columns((1, 1))
+_, column, _ = st.columns((1, 1, 1))
 
-column.header("Diagnostics")
+column.markdown("<h1 style='text-align: center; color: black;'>Diagnostics</h1>", unsafe_allow_html=True)
 
 tabela_pm = go.Figure(data=[go.Table(header=dict(values=[' ', 'diagnosis'], font=dict(color='black', size=20), height=36),
                  cells=dict(values=[["PP joint", "CP sliding blocks", "CP rollers", "Hydraulic leakages", "Gresing system"], ["OK", "OK", "OK", "OK", "OK"]], 
@@ -566,4 +570,4 @@ tabela_pm = go.Figure(data=[go.Table(header=dict(values=[' ', 'diagnosis'], font
                  ))
                      ])
 
-column.plotly_chart(tabela_pm)
+column.plotly_chart(tabela_pm, use_container_width=True)
