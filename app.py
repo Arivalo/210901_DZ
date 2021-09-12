@@ -193,6 +193,10 @@ def wykres_z_tygodnia(df, data, lista_kolumn, lista_etykiet, title=""):
     
     previous = [0 for x in range(7)]
     
+    for dzien in dni_tydzien:
+        if dzien not in df.columns:
+            df[dzien] = 0
+    
     ax.bar(data, df[str(data)].T["Motohours total"].max()+0.18, width=1, color="yellow", label="Selected day",
             alpha=0.6)
     
@@ -214,6 +218,10 @@ def wykres_z_tygodnia2(df, data, lista_kolumn, lista_etykiet, title=""):
     fig, ax = plt.subplots(1, figsize=(8,5))
     
     dni_tydzien = [str(data + dt.timedelta(days=d-data.weekday())) for d in range(7)]
+    
+    for dzien in dni_tydzien:
+        if dzien not in df.columns:
+            df[dzien] = 0
     
     ax.bar(data, df[str(data)].T[lista_kolumn[0]].max()*1.1, width=1, color="yellow", label="Selected day",
             alpha=0.6)
