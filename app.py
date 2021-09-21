@@ -395,7 +395,7 @@ c1, c2, c3 = st.columns((1,5,1))
 ## c1
 c1.header("Select day:")
 
-data_od = c1.date_input("", value=dt.date(2021,8,3), min_value=dt.date(2021,8,1), max_value=dt.date.today(), help="Choose day you want to analyze")
+data_od = c1.date_input("", value=dt.date.today()-dt.timedelta(days=7), min_value=dt.date(2021,8,1), max_value=dt.date.today(), help="Choose day you want to analyze")
 c1.write("------------------")
 
 
