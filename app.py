@@ -13,13 +13,10 @@ import matplotlib.dates as mdates
 from matplotlib.ticker import MaxNLocator
 
 ## TO DO ##
-# tabela
-# - oddzielenia tematyczne w tabeli - mth, dist, itp
-# - % udzialy np. mth idle w total
 # inne
-# - wskaźnik obciążenia - przeciążenie over 26t
 # - wymuszanie jasnego motywu
-# - wykresy dla przeciążeń - dodanie nowego parametru
+# - komunikat brak danych z dnia
+# - nieprzeciążone dni
 
 
 @st.cache(suppress_st_warning=True, allow_output_mutation=True)
@@ -197,7 +194,7 @@ def wykres_z_tygodnia(df, data, lista_kolumn, lista_etykiet, title=""):
         if dzien not in df.columns:
             df[dzien] = 0
     
-    ax.bar(data, df[str(data)].T["Motohours total"].max()+0.18, width=1, color="yellow", label="Selected day",
+    ax.bar(data, df[str(data)].T["Motohours total"].max()*1.1, width=1, color="yellow", label="Selected day",
             alpha=0.6)
     
     for kolumna, label, color in zip(lista_kolumn, lista_etykiet, colors):
@@ -287,7 +284,6 @@ def wykres_dystrybucja(df, dane_z_dnia, kolumna):
     fig, ax = plt.subplots(1, figsize=(8,5))
     
     data = df.T[kolumna].copy().values
-    #n, bins, patches = plt.hist(mth_data, bins='auto', orientation='horizontal', edgecolor='black')
     
     bins = int(np.ceil(max(data)))+1
     hist, bin_edges = np.histogram(data, bins=[x for x in range(bins)])
@@ -295,7 +291,11 @@ def wykres_dystrybucja(df, dane_z_dnia, kolumna):
     plt.barh([-0.5+x for x in range(1,bins)], hist, edgecolor='black', height=1)
     
     data_today = dane_z_dnia.T[kolumna]
-    plt.barh(np.ceil(data_today)-0.5, hist[min(int(np.ceil(data_today))-1, len(hist)-1)], height=1, edgecolor='black', label="Selected day")
+    
+    if np.ceil(data_today) == 0:
+        data_today += 0.1
+    
+    plt.barh(np.ceil(data_today)-0.5, hist[int(min(np.ceil(data_today)-1, len(hist)-1))], height=1, edgecolor='black', label="Selected day", color='yellow')
     
     plt.grid()
     plt.xlabel("Amount of days")
@@ -313,7 +313,6 @@ def wykres_dystrybucja2(df, dane_z_dnia, kolumna):
     fig, ax = plt.subplots(1, figsize=(8,5))
     
     data = df.T[kolumna].copy().values
-    #n, bins, patches = plt.hist(mth_data, bins='auto', orientation='horizontal', edgecolor='black')
     
     bins = int(np.ceil(max(data))/20)
     hist, bin_edges = np.histogram(data, bins=[x*20 for x in range(bins)])
@@ -321,7 +320,11 @@ def wykres_dystrybucja2(df, dane_z_dnia, kolumna):
     plt.barh([(-0.5+x)*20 for x in range(1,bins)], hist, edgecolor='black', height=20)
     
     data_today = dane_z_dnia.T[kolumna]
-    plt.barh((np.ceil(data_today/20)*20-10), hist[int(np.floor(data_today)/20)], height=20, edgecolor='black', label="Selected day")
+    
+    if np.ceil(data_today) == 0:
+        data_today += 0.1
+    
+    plt.barh((np.ceil(data_today/20)*20-10), hist[int(np.floor(data_today)/20)], height=20, edgecolor='black', label="Selected day", color='yellow')
     
     plt.grid()
     plt.xlabel("Amount of days")
@@ -415,6 +418,7 @@ else:
     except KeyError:
         dane_z_dnia = df_stats[df_stats.columns[0]].copy().rename({df_stats.columns[0]:"Selected day"})
         dane_z_dnia["Selected day"] = 0
+        c1.write("No data for selected day")
 
 #c3.write(f"Statistics from {data_od}")
 #c2.dataframe(dane_z_dnia, height=500)
@@ -447,7 +451,7 @@ except NameError:
         df = pd.DataFrame()
 
 
-cols = st.columns((1,1,1))
+#cols = st.columns((1,1,1))
 
 # fig = px.line(df, x='Data_godzina', y='Nacisk_total', title="Truck weight during the day",
             # labels={'Data_godzina':"Time", "Nacisk_total":"Total weight"})
@@ -492,27 +496,19 @@ if not df.empty:
     plt.legend()
 
     #c2.plotly_chart(fig)
-
-    # wykresy
-    cols[0].write(fig_p0)
-    cols[0].write(fig_p1)
-    cols[0].write(fig_p2)
     
     ## WEEKLY
     # MOTOGODZINY
     fig_q0 = wykres_z_tygodnia(df_stats, data_od, ["Motohours driving", "Motohours 900rpm stop", "Motohours idle"], ["Motohours driving", "Motohours 900rpm stop", "Motohours idle"], title="Weekly data")
     #plt.legend()
-    cols[1].write(fig_q0)
     
     # MOTOGODZINY PRZELADOWANY
     fig_q1 = wykres_z_tygodnia2(df_stats, data_od, ["Motohours total", "Motohours >26t"], ["Motohours total", "Motohours >26t"])
     #plt.legend()
-    cols[1].write(fig_q1)
     
     # DYSTANS
     fig_q2 = wykres_z_tygodnia2(df_stats, data_od, ["Distance [km]", "Distance >26t [km]"], ["Distance [km]", "Distance >26t [km]"])
     #plt.legend()
-    cols[1].write(fig_q2)
     
     ## NORMAL DISTRIBUTION
     # MOTOGODZINY
@@ -520,18 +516,12 @@ if not df.empty:
     fig_r0 = wykres_dystrybucja(df_stats, dane_z_dnia, "Motohours total")
     plt.title("Distribution", fontsize=24)
     plt.tight_layout()
-    cols[2].write(fig_r0)
     
     # MOTOGODZINY >26t
     fig_r1 = wykres_dystrybucja(df_stats, dane_z_dnia, "Motohours >26t")
-    cols[2].write(fig_r1)
     
     # DYSTANS
     fig_r2 = wykres_dystrybucja2(df_stats, dane_z_dnia, "Distance [km]")
-    cols[2].write(fig_r2)
-    
-
-    
     
     #cols[2].plotly_chart(fig)
 
@@ -545,7 +535,7 @@ if not df.empty:
     plt.tight_layout()
     #plt.legend()
     
-    cols[0].write(fig_s0)
+    
     
 # WEEKLY OBCIĄŻENIA
 
@@ -553,11 +543,36 @@ if not df.empty:
     #plt.legend()
     plt.ylabel("Overload [t]")
     plt.tight_layout()
-    cols[1].write(fig_s1)
+    
     
 # DYSTRYBUCJA
 
-    fig_s2 = wykres_dystrybucja(df_stats, dane_z_dnia, "Max overload >26t [t]")
+    fig_s2 = wykres_dystrybucja(df_stats, dane_z_dnia, "Max overload >26t [t]")   
+    
+    # wykresy
+    exp0 = st.expander("Motohours")
+    cols = exp0.columns((1,1,1))
+    cols[0].write(fig_p0)
+    cols[1].write(fig_q0)
+    cols[2].write(fig_r0)
+    
+    exp1 = st.expander("Motohours overloaded")
+    cols = exp1.columns((1,1,1))
+    cols[0].write(fig_p1)
+    cols[1].write(fig_q1)
+    cols[2].write(fig_r1)
+    
+    exp2 = st.expander("Distance")
+    cols = exp2.columns((1,1,1))
+    cols[0].write(fig_p2)
+    cols[1].write(fig_q2)
+    cols[2].write(fig_r2)
+    
+    
+    exp3 = st.expander("Load")
+    cols = exp3.columns((1,1,1))
+    cols[0].write(fig_s0)
+    cols[1].write(fig_s1)
     cols[2].write(fig_s2)
 
     
