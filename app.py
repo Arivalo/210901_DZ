@@ -239,12 +239,12 @@ def wykres_z_tygodnia2(df, data, lista_kolumn, lista_etykiet, title=""):
 def tabela_statystyk_wyswietl(df):
 
     def my_value(number):
-        return ("{:,}".format(number).replace(",", " "))
+        return "{:,}".format(number)
 
     df = df.reset_index().rename(columns={'index':""})
     
     df[""] = [f"<b>{val}</b>" for val in df[""]]
-    df["total"] = ["{:,}".format(float(number)) if number !="-" else "-" for number in df["total"]]
+    df["total"] = ["{:,}".format(float(number)).replace(","," ") if number !="-" else "-" for number in df["total"]]
     
     df["selected day"] = [f"{val} <sub>{percent}</sub>" if percent!="-"  else val for val, percent in zip(df["selected day"], df["%"])]
     
