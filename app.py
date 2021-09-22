@@ -239,7 +239,7 @@ def wykres_z_tygodnia2(df, data, lista_kolumn, lista_etykiet, title=""):
 def tabela_statystyk_wyswietl(df):
 
     def my_value(number):
-        return ("{:,}".format(number)).replace(",", " ")
+        return ("{:,}".format(number).replace(",", " "))
 
     df = df.reset_index().rename(columns={'index':""})
     
