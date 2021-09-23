@@ -376,7 +376,7 @@ def wykres_dystrybucja2(df, dane_z_dnia, kolumna):
     
 def wykres_dystrybucja_v2(df, stat, today_stats=None, mean=True, bin_w=1, fs=(8,5), xlabel=None):
     
-    fig = plt.figure(figsize=fs)
+    fig, ax = plt.subplots(1, figsize=fs)
     sns.set_palette("bright")
     
     # filtrowanie '0' motogodzin
@@ -405,6 +405,9 @@ def wykres_dystrybucja_v2(df, stat, today_stats=None, mean=True, bin_w=1, fs=(8,
     plt.tight_layout()
     
     plt.xlim((0, np.ceil(df_hist[stat].max()/bin_w)*bin_w))
+    
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
     
     return fig
     
