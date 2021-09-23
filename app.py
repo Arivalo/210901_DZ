@@ -239,12 +239,50 @@ def wykres_z_tygodnia2(df, data, lista_kolumn, lista_etykiet, title=""):
 def tabela_statystyk_wyswietl(df):
 
     def my_value(number):
+        '''
+        example
+        -------
+        input: 5000000
+        output: "5,000,000"
+        '''
         return "{:,}".format(number)
+        
+    def h_to_time(h):
+        '''
+        example
+        -------
+        input: 6.4
+        output: "6h 24 min"
+        '''
+        try:
+            HH = int(h)
+            mm = int((h-HH)*60)
+        except ValueError:
+            print(h)
+            return "-"
+        
+        return f"{HH}h {mm}min"
+        
+        
+    mth_cols = ["Motohours total", "Motohours idle", "Motohours 900rpm stop", "Motohours driving",
+                "Motohours >26t"]
+                
+    df["selected day"].T[mth_cols] = df["selected day"].T[mth_cols].astype("float64").apply(h_to_time)
+    
+    data_cols = ["selected day", "avg. week", "avg. month", "total"]
+    hyd_cols = ["Hydraulic energy [kJ]", "Compaction hydraulic energy [kJ]"]
+    
+    for col in data_cols:
+        df[col].T[hyd_cols] = (df[col].T[hyd_cols].astype("float64")/1000).round(1)
+        
+    df = df.rename(index={hyd_cols[0]:"Hydraulic energy [GJ]", hyd_cols[1]:"Compaction hydraulic energy [GJ]"})
 
     df = df.reset_index().rename(columns={'index':""})
     
     df[""] = [f"<b>{val}</b>" for val in df[""]]
     df["total"] = ["{:,}".format(float(number)).replace(","," ") if number !="-" else "-" for number in df["total"]]
+    
+    
     
     df["selected day"] = [f"{val} <sub>{percent}</sub>" if percent!="-"  else val for val, percent in zip(df["selected day"], df["%"])]
     
