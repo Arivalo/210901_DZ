@@ -11,6 +11,7 @@ from PIL import Image
 from funkcje import *
 import matplotlib.dates as mdates
 from matplotlib.ticker import MaxNLocator
+import seaborn as sns
 
 ## TO DO ##
 # inne
@@ -115,6 +116,7 @@ def stworz_tabele_statystyk(df, data):
     data_parted = str(data).split("-")
     data = dt.date(int(data_parted[0]), int(data_parted[1]), int(data_parted[2]))
     dni_tydzien = [str(data + dt.timedelta(days=d-data.weekday())) for d in range(7) if str(data + dt.timedelta(days=d-data.weekday())) in df.columns]
+    dni_miesiac = [dzien for dzien in df.columns if dzien[:7]==str(data)[:7]]
     
     df_out = pd.DataFrame()
     
@@ -125,7 +127,7 @@ def stworz_tabele_statystyk(df, data):
     
     df_out['avg. week'] = df[dni_tydzien].mean(axis=1)
     
-    df_out['avg. month'] = df.mean(axis=1)
+    df_out['avg. month'] = df[dni_miesiac].mean(axis=1)
     
     df_out['total'] = df.sum(axis=1)
     
@@ -263,16 +265,14 @@ def tabela_statystyk_wyswietl(df):
         
         return f"{HH}h {mm}min"
         
-        
-    mth_cols = ["Motohours total", "Motohours idle", "Motohours 900rpm stop", "Motohours driving",
-                "Motohours >26t"]
-                
-    df["selected day"].T[mth_cols] = df["selected day"].T[mth_cols].astype("float64").apply(h_to_time)
     
     data_cols = ["selected day", "avg. week", "avg. month", "total"]
+    mth_cols = ["Motohours total", "Motohours idle", "Motohours 900rpm stop", "Motohours driving",
+                "Motohours >26t"]
     hyd_cols = ["Hydraulic energy [kJ]", "Compaction hydraulic energy [kJ]"]
     
     for col in data_cols:
+        df[col].T[mth_cols] = df[col].T[mth_cols].astype("float64").apply(h_to_time)
         df[col].T[hyd_cols] = (df[col].T[hyd_cols].astype("float64")/1000).round(1)
         
     df = df.rename(index={hyd_cols[0]:"Hydraulic energy [GJ]", hyd_cols[1]:"Compaction hydraulic energy [GJ]"})
@@ -280,7 +280,7 @@ def tabela_statystyk_wyswietl(df):
     df = df.reset_index().rename(columns={'index':""})
     
     df[""] = [f"<b>{val}</b>" for val in df[""]]
-    df["total"] = ["{:,}".format(float(number)).replace(","," ") if number !="-" else "-" for number in df["total"]]
+    df["total"].iloc[5:] = ["{:,}".format(float(number)).replace(","," ") if number !="-" else "-" for number in df["total"].iloc[5:]]
     
     
     
@@ -374,11 +374,45 @@ def wykres_dystrybucja2(df, dane_z_dnia, kolumna):
     
     return fig
     
+def wykres_dystrybucja_v2(df, stat, today_stats=None, mean=True, bin_w=1, fs=(8,5), xlabel=None):
+    
+    fig = plt.figure(figsize=fs)
+    sns.set_palette("bright")
+    
+    # filtrowanie '0' motogodzin
+    df_hist = df.T
+    df_hist = df_hist[df_hist["Motohours total"] > 0]
+    
+    sns.histplot(data=df_hist, x=stat, color="gray", stat='count', line_kws={"color":"red"}, binwidth=bin_w, binrange=(0, df_hist[stat].max()), shrink=0.95)
+    sns.histplot(data=df_hist, x=stat, fill=False, color="red", stat='count', kde=True, line_kws={"lw":2}, binwidth=bin_w, binrange=(0, df_hist[stat].max()), shrink=0.95)
+    sns.histplot(data=df_hist, x=stat, fill=False, color="k", stat='count', binwidth=bin_w, binrange=(0, df_hist[stat].max()), shrink=0.95)
+    
+    plt.ylabel("amount of days")
+    
+    plt.plot(0,0, color="red", label="Distribution line")
+    
+    if mean:
+        plt.axvline(df_hist[stat].mean(), label="Daily avg.", color='blue', lw=2.5, ls='--')
+        
+    if today_stats is not None:   
+        plt.axvline(today_stats.T[stat], label="Selected day", color='yellow', lw=2.5)
+        
+    if xlabel is not None:
+        plt.xlabel(xlabel)
+        
+    plt.grid()
+    plt.legend()
+    plt.tight_layout()
+    
+    plt.xlim((0, np.ceil(df_hist[stat].max()/bin_w)*bin_w))
+    
+    return fig
+    
     
     
 ######################################################################################################################
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_title='Dashboard')
 
 st.markdown("<h1 style='text-align: center; color: black;'>FQN9002</h1>", unsafe_allow_html=True)
 
@@ -551,15 +585,15 @@ if not df.empty:
     ## NORMAL DISTRIBUTION
     # MOTOGODZINY
     
-    fig_r0 = wykres_dystrybucja(df_stats, dane_z_dnia, "Motohours total")
+    fig_r0 = wykres_dystrybucja_v2(df_stats, "Motohours total", today_stats=dane_z_dnia)
     plt.title("Distribution", fontsize=24)
     plt.tight_layout()
     
     # MOTOGODZINY >26t
-    fig_r1 = wykres_dystrybucja(df_stats, dane_z_dnia, "Motohours >26t")
+    fig_r1 = wykres_dystrybucja_v2(df_stats, "Motohours >26t", today_stats=dane_z_dnia)
     
     # DYSTANS
-    fig_r2 = wykres_dystrybucja2(df_stats, dane_z_dnia, "Distance [km]")
+    fig_r2 = wykres_dystrybucja_v2(df_stats, "Distance [km]", today_stats=dane_z_dnia, bin_w=20)
     
     #cols[2].plotly_chart(fig)
 
@@ -585,7 +619,7 @@ if not df.empty:
     
 # DYSTRYBUCJA
 
-    fig_s2 = wykres_dystrybucja(df_stats, dane_z_dnia, "Max overload >26t [t]")   
+    fig_s2 = wykres_dystrybucja_v2(df_stats,"Max overload >26t [t]", today_stats=dane_z_dnia)   
     
     # wykresy
     exp0 = st.expander("Motohours")
