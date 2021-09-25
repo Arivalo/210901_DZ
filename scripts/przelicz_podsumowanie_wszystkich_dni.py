@@ -49,4 +49,6 @@ for plik in podsumowanie_files:
     
     summary = pd.concat((summary, df_temp))
 
+summary = summary.reset_index(drop=True)
 summary.to_csv(path_to_save_podsumowanie + '\\' + file_name)
+summary.to_excel(path_to_save_podsumowanie + '\\' + file_name.split('.')[0] + '.xlsx')

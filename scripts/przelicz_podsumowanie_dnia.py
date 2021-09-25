@@ -70,18 +70,45 @@ def tabela_statystyk_dnia(df):
         dane_dnia['Hourly fuel consumption [dm3/h]'] = 0 
 
     # energia hydrauliczna
-    dane_dnia['Hydraulic energy [kJ]'] = [df['hydraulic_energy'].max()]
-    dane_dnia['Compaction hydraulic energy [kJ]'] = [df['energia_hydr_zageszczania'].max()]
+    dane_dnia['Hydraulic energy [GJ]'] = [df['hydraulic_energy'].max()/1000]
+    dane_dnia['Compaction hydraulic energy [GJ]'] = [df['energia_hydr_zageszczania'].max()/1000]
+    
+    # przepompowany olej
+    dane_dnia['Hydraulic oil [m3]'] = [df['ilosc_przepompowanego_oleju'].max()]
+    dane_dnia['Hydraulic oil >120 bar [m3]'] = [df['ilosc_przepompowanego_oleju_120bar'].max()]
     
     # Nacisk na osie
     #temp_df[temp_df['RPM'] > 800]['Nacisk_total']
     dane_dnia['Max overload >26t [t]'] = max(0, df[df['RPM'].astype(int) > 800]['Nacisk_total'].max()/1000-26)
+    
+    # Masa smieci
+    dane_dnia['Waste mass [t]'] = [df['Masa_smieci'].max()/1000]
+    
+    # Tonokilometry
+    dane_dnia['Waste mass x kilometers [t*km]'] = [df['Tonokilometry_masa_smieci'].max()]
+    dane_dnia['Vehicle overload x kilometers [t*km]'] = [df['Tonokilometry_przeladowane'].max()]    
+    
+    # Zapelnienie skrzyni (w momencie maks nacisku na osie)
+    dane_dnia['Body capacity used [%]'] = [df.loc[df['Nacisk_total'].argmax(), 'zapelnienie_skrzyni_procent']]
 
     dane_dnia = dane_dnia.T.rename(columns={0:"Selected day"})
     #dane_dnia.columns = dane_dnia.iloc[0]
     #dane_dnia = dane_dnia.iloc[1:]
     
+    # Parametry akumulowane
+    # tbc
+    
+    
+    
+    
     return dane_dnia.round(1)#.astype(str)
+
+
+
+
+
+
+
 
 
 for plik in data_files:
