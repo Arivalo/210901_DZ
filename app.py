@@ -262,6 +262,9 @@ def tabela_statystyk_wyswietl(df):
         except ValueError:
             print(h)
             return "-"
+            
+        if mm < 10:
+            mm = f"0{mm}"
         
         return f"{HH}:{mm}"
         
