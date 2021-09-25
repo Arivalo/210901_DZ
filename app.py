@@ -254,7 +254,7 @@ def tabela_statystyk_wyswietl(df):
         example
         -------
         input: 6.4
-        output: "6h 24 min"
+        output: "6:24"
         '''
         try:
             HH = int(h)
@@ -263,7 +263,7 @@ def tabela_statystyk_wyswietl(df):
             print(h)
             return "-"
         
-        return f"{HH}h {mm}min"
+        return f"{HH}:{mm}"
         
     
     data_cols = ["selected day", "avg. week", "avg. month", "total"]
