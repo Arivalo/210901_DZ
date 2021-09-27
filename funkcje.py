@@ -46,6 +46,7 @@ def przelicz_przebieg_z_naciskiem_X(series_predkosc_osi, nacisk_na_osie_series, 
     '''
         Przelicza przebieg w danej sekundzie oraz laczny przebieg, na podstawie predkosci w km/h
         dla momentu gdy naciski na osie sa mniejsze niz nacisk_na_osie_max zeruje predkosc do obliczen
+
         Input:
             series_predkosc_osi - Series z wartosciamy predkosci osi w km/h
             nacisk_na_osie_series - Series z lacznym naciskiem na wszystkie osie [kg]
@@ -65,6 +66,40 @@ def przelicz_przebieg_z_naciskiem_X(series_predkosc_osi, nacisk_na_osie_series, 
     total_distance_km = distance_km.cumsum().round(3)
 
     return distance_m, total_distance_km
+
+def przelicz_ilosc_oleju(series_cisnienie_bar, series_rpm, cisnienie_min=0, r_pto = 1.19, pump_displacement = 69):
+    '''
+        oil = oil flow
+
+
+        Input:
+            series_cisnienie - Series z cisnieniem hydraulicznym [bar]
+            series_rpm - Series z predkoscia obrotowa silnika [rpm]
+            r_pto - przelozenie przystawki odbioru mocy
+            pump_displacement - pojemnosc jednostkowa pompy w cm3/rev
+
+        Returns:
+            oil_flow - Series przeplyw chwilowy oleju w dm3/min
+            oil_flow_cumulative - Series laczny przeplyw oleju w m3
+        '''
+
+
+    p = series_cisnienie_bar.values
+
+    # wyzeruj wiersze gdzie cisnienie jest mniejsze niz cisnienie_min
+    index_ = p > cisnienie_min
+    series_rpm[~index_] = 0
+
+    pump_displacement_dm3 = pump_displacement / 1000 # dm3 per 1 rev
+
+    oil_flow = series_rpm * r_pto * pump_displacement_dm3 # dm3 / min
+    oil_flow_m3s = oil_flow / 60 / 1000 # m3 / s
+
+    oil_flow_cumulative = oil_flow_m3s.cumsum().round(2) # m3
+
+    oil_flow = oil_flow.round(2)
+
+    return oil_flow, oil_flow_cumulative
 
 
     
@@ -139,6 +174,9 @@ def przelicz_polozenie_srodka_masy_pustego_pojazdu(N1, N2, L):
 def przelicz_naciski_i_masy(N, x1, Wp = 15060, a = 2200, b = 560, c=4227, L = 4000):
     '''
     17/08/2021 - WCIAZ DO WERYFIKACJI SYGNAL Z CZUJNIKA LASEROWEGO !!!
+
+
+
     Dane:
     N - laczny nacisk na osie 2 i 3 [kg], parametr axle_weight
     x1 - polozenie sciany wypychajacej [mm]
@@ -166,9 +204,14 @@ def przelicz_naciski_i_masy(N, x1, Wp = 15060, a = 2200, b = 560, c=4227, L = 40
     N_total = np.round(Wp + Ms, 0 )# kg
 
     N1 = N_total - N # kg
-    
+
+    Ls[Ls<0] = 0
+    Ms[Ms<0] = 0
+    N_total[N_total<0] = 0.01
+    N1[N1<0] = 0
+
     ratio_N1N2 = np.round(N1 / N_total, 3) * 100 # [%]
-    
+
     return Ls, Ms, N_total, N1, ratio_N1N2
 
 
@@ -203,6 +246,8 @@ def przelicz_gestosc_odpadow(x1, Ms, c= 4227,  A = 5022500):
     
     '''
     17/08/2021 - WCIAZ DO WERYFIKACJI SYGNAL Z CZUJNIKA LASEROWEGO !!!
+
+
     Dane:
     
     A - pole powierzchnie przekroju skrzyni [mm2]
@@ -216,7 +261,7 @@ def przelicz_gestosc_odpadow(x1, Ms, c= 4227,  A = 5022500):
     V_smieci = A_m2 * (c - x1) / 1000 # m3
     V_smieci[V_smieci<1] = 1000
     
-    gestosc = Ms / V_smieci # kg/m3
+    gestosc = np.round( Ms / V_smieci, 1) # kg/m3
     
     return gestosc
 
@@ -232,17 +277,24 @@ def przelicz_cisnienie_bar(series_cisnienie):
 def przelicz_czujnik_temperatury(df_Series, czujnik='Febi Bilstein 28334'):
     """
     przelicza temperature z ohm na st.C
+
+
     Charakterystyka dla czujnika Febi Bilstein 28334:
+
     temperatura_C = -34.27 * ln(odczyt_w_ohm) + 281.81
+
     Febi Bilstein 28334 to czujnik temperatury cieczy montowany w łozyskach tramwaju (27/10/2020).
+
     Parameters
     ----------
     df_Series: pandas Series
     Kolumna z df zawierajaca wartosci w [ohm] odczytane z webx
+
     Returns
     -------
     temperatura: np array
     Wektor zawierajacy wartosci temperatury w st. C
+
     """
     if czujnik == 'Febi Bilstein 28334':
         temperatura = (-34.27 * np.log(df_Series.values) + 281.81).round(1)
@@ -262,9 +314,11 @@ def przelicz_temperature(df, kolumny_z_czujnikami, czujnik='Febi Bilstein 28334'
 def przelicz_delta_temperatur(series_temp_pin ,series_temp_zewn):
 
     """
+
     :param series_temp_pin:
     :param series_temp_zewn:
     :return:
+
     delta - Series z roznica temp miedzy temp w sworzniu a temperatura otoczenia (z CAN)
     """
 
@@ -277,21 +331,26 @@ def przelicz_delta_temperatur(series_temp_pin ,series_temp_zewn):
 def przelicz_akcelerometr(df_Series, czujnik='IFM VTV122'):
     """
     Przeliczenie wartości czujnika na wartosc mierzona
+
     Czujnik:        IFM VTV122
     Rodzaj pomiaru: wartosc RMS
     Wyjście:        4-20    mA
     Zakres pomiaru: 0-25    RMS
+
     Parametry
     ---------
     df_Series: pandas.Series
     Kolumna z danymi wejsciowymi
+
     Zwraca
     ------
     rms: np.array
     Przeliczona kolumna wartosci
+
     Przyklad
     -----
     df['Wartosc_przeliczona'] = przelicz_akcelerometr(df['Wartosc_surowa'], czujnik='IFM VTV122')
+
     """
     if czujnik == 'IFM VTV122':
         rms = ((df_Series.values-4000)/16000*25).round(1)
@@ -310,24 +369,28 @@ def przelicz_akcelerometry(df, kolumny_z_czujnikami, czujnik='IFM VTV122'):
 def dane_bypass_wysuwanie_sciany(df_Series, kolumny=['wysuwanie_sciany', 'bypass_1']):
     '''
     Przerabia dane liczbowe na stany okreslajace poszczegolne ruchy suwaka i zgarniaka
+
     Parametry
     ---------
     df_Series: pandas.Series
     Kolumna zawierajaca okreslona ramke danych (203)
+
     kolumny: lista
     Kolumna z nazwami kolumn w kolejnosci bitow
     default: ['wysuwanie_sciany', 'bypass_1']
+
     Zwraca
     ------
     pandas.DataFrame
     Tabela z danymi o stanach 0 i 1
+
     Przyklad
     --------
     dane_bypass_sciana =  dane_bypass_wysuwanie_sciany(df["bypass1_1"])
     '''
     # 80 - wysuwanie sciany; 64 - sciana stoi; 2 - bypass zalaczony; 0 - bypass wylaczony
     # upraszczam do 16 - wysuwanie sciany (roznica miedzy tymi stanami, sama 16 nie wystepuje)
-    dane_binarne = df_Series.ffill().bfill().astype('int').apply(lambda x: [int(x) for x in bin(x%32)[2:].zfill(4)[0]] + [int(x) for x in bin(x%32)[2:].zfill(4)[-2]])
+    dane_binarne = df_Series.astype('int').apply(lambda x: [int(x) for x in bin(x%32)[2:].zfill(4)[0]] + [int(x) for x in bin(x%32)[2:].zfill(4)[-2]])
 
     return pd.DataFrame.from_records(dane_binarne, columns=kolumny)
 
@@ -372,8 +435,65 @@ def oblicz_procent_zapelnienia_skrzyni(x1, polozenie_sciany_max = 4227):
     return procent
 
 
+def oblicz_tonokilometry(series_masa_smieci, series_distance_m, min_masa_smieci_kg=0):
+    """
+
+    :param series_masa_smieci: masa smieci w kg
+    :param series_distance_m: przebieg chwilowy w m
+    :param min_masa_smieci_kg:
+
+    :return:
+    tonokilomerty - Series
+    """
+
+
+
+    # wyzeruj wiersze gdzie masa pojazdu jest mniejsza niz min_masa_smieci_kg
+    series_masa_smieci[series_masa_smieci < min_masa_smieci_kg] = 0
+
+
+
+    ms_t = series_masa_smieci / 1000  # masa smieci w tonach
+    dist_km = series_distance_m / 1000  # chwilowy przebieg w km
+
+    tonokilomerty_temp = (ms_t * dist_km).round(1)
+
+    tonokilomerty = tonokilomerty_temp.cumsum()
+
+    return tonokilomerty
+
+
+def oblicz_tonokilometry_przeladowane(series_nacisk_total, series_distance_m, nacisk_min=26000):
+    """
+
+    :param series_nacisk_total: masa calkowita pojazdu, czyli naciski na osie lacznie
+    :param series_distance_m: przebieg chwilowy w m
+    :param nacisk_min: masa pojazdu uznawana za mase dopuszczalna = 26 t
+
+
+    :return:
+    tonokilomerty - Series
+    """
+
+    # wyzeruj wiersze gdzie masa pojazdu jest mniejsza niz min_masa_smieci_kg
+    series_nacisk_total = series_nacisk_total-nacisk_min
+    series_nacisk_total[series_nacisk_total < 0] = 0
+
+
+
+    masa_t = series_nacisk_total / 1000  # naciks na osie w tonach
+    dist_km = series_distance_m / 1000  # chwilowy przebieg w km
+
+    tonokilomerty_temp = (masa_t * dist_km).round(1)
+
+    tonokilomerty = tonokilomerty_temp.cumsum()
+
+    return tonokilomerty
+
+
 def oblicz_motogodziny(series_predkosc_kol, series_rpm, rpm_min=500, rpm_max=650, predkosc_max=0, predkosc_min=0, tylko_postoj=True):
     '''
+
     :param series_predkosc_kol:
     :param series_rpm:
     :param rpm_min:
@@ -402,13 +522,14 @@ def oblicz_motogodziny(series_predkosc_kol, series_rpm, rpm_min=500, rpm_max=650
     return motogodziny
 
 
-def oblicz_motogodziny_z_naciskiem(series_nacisk_total, nacik_min=26000):
+def oblicz_motogodziny_z_naciskiem(series_nacisk_total, nacisk_min=26000):
     '''
+
     :param series_nacisk_total:
     :param nacik_min:
     :return:
     '''
-    index_ = (series_nacisk_total >= nacik_min)
+    index_ = (series_nacisk_total >= nacisk_min)
 
     sekundy = series_nacisk_total.copy()
 
@@ -425,6 +546,8 @@ def oblicz_motogodziny_z_naciskiem(series_nacisk_total, nacik_min=26000):
 def oblicz_zuzycie_paliwa(zuzyte_paliwo_total, przebieg, motogodziny):
     '''
     Oblicza godzinowe_zuzycie_paliwa i przebiegowe_zuzycie_paliwa
+
+
     :param zuzyte_paliwo_total: float w dm3
     :param przebieg: float w km
     :param motogodziny: float w h
@@ -442,9 +565,12 @@ def oblicz_zuzycie_paliwa(zuzyte_paliwo_total, przebieg, motogodziny):
 def znajdz_cykle_zageszczania(series_cisnienie, cisnienie_min=120):
     '''
     Znajduje cykle zageszczania smieni na podstawie pikow cisnienia w przebiegu cisnienia. Dla uproszczenia wszystkie cisnienia mniejsze niz cisnienie_min zostaly wyzerowane.
+
+
     :param series_cisnienie:
     :param cisnienie_min:
     :return:
+
     cykl_prasowania - Series
     '''
     series_cisnienie_temp = series_cisnienie.copy()
@@ -488,11 +614,6 @@ def przygotuj_dane(df):
     L = 4504
     A = 5022500
 
-    try:
-        df['FMSWBSPEED']
-    except KeyError:
-        df['FMSWBSPEED'] = df['VEL']
-
     mapa_kolumn = {
         'updatedAt':'Data_godzina',
         'FMSVW':'Nacisk_osie_23',
@@ -500,7 +621,7 @@ def przygotuj_dane(df):
         'FMSFL':'Fuel_level',
         'FMSLFC':'Fuel_consumption',
         'FMSWBSPEED':'predkosc_kol',
-        #'FMSAIRTEMP':'temperatura_zewn',
+        'FMSAIRTEMP':'temperatura_zewn',
         'FMSRPM':'RPM',
         'XT_XCAN_U16_000':'polozenie_sciany',
         'XT_XCAN_U16_001':'cisnienie',
@@ -579,8 +700,8 @@ def przygotuj_dane(df):
     # Temperatura sworznia
     kolumny_z_czujnikami = ['temperatura_IN12', 'temperatura_IN14']
     przelicz_temperature(df, kolumny_z_czujnikami, czujnik='Febi Bilstein 28334')
-    #df['delta_temp_PIN_1'] = przelicz_delta_temperatur(df['temperatura_IN12'], df['temperatura_zewn'])
-    #df['delta_temp_PIN_2'] = przelicz_delta_temperatur(df['temperatura_IN14'], df['temperatura_zewn'])
+    df['delta_temp_PIN_1'] = przelicz_delta_temperatur(df['temperatura_IN12'], df['temperatura_zewn'])
+    df['delta_temp_PIN_2'] = przelicz_delta_temperatur(df['temperatura_IN14'], df['temperatura_zewn'])
 
     # Czujnik RMS
     kolumny_z_akcelerometrami = ['rms_IN00', 'rms_IN02']
@@ -623,8 +744,12 @@ def przygotuj_dane(df):
     df['distance_m_przeladowana'], df['przebieg_km_przeladowana'] = przelicz_przebieg_z_naciskiem_X(df['predkosc_kol'], df['Nacisk_total'], nacisk_na_osie_max = 26000 )
     df['gestosc_smieci_min'] = oblicz_minimalna_gestosc_pelnej_skrzyni(df['Masa_smieci'], c, A)
     df['gestosc_smieci'] = przelicz_gestosc_odpadow(df['polozenie_sciany_mm'], df['Masa_smieci'], c= c,  A = A)
-    df['motogodziny_przeladowana'] = oblicz_motogodziny_z_naciskiem(df['Nacisk_total'], nacik_min=26000)
+    df['motogodziny_przeladowana'] = oblicz_motogodziny_z_naciskiem(df['Nacisk_total'], nacisk_min=26000)
     df['distance_m_przeladowana'], df['przebieg_km_przeladowana'] = przelicz_przebieg_z_naciskiem_X(df['predkosc_kol'], df['Nacisk_total'], nacisk_na_osie_max = 26000)
+
+    # Tonokilometry
+    df['Tonokilometry_masa_smieci'] = oblicz_tonokilometry(df['Masa_smieci'], df['distance_m'], min_masa_smieci_kg=0)
+    df['Tonokilometry_przeladowane'] = oblicz_tonokilometry_przeladowane(df['Nacisk_total'], df['distance_m'], nacisk_min=26000)
 
     # Cykle robocze
     df['cykl_zageszczania_100'] = znajdz_cykle_zageszczania(df['cisnienie_bar'], cisnienie_min=100)
@@ -636,5 +761,12 @@ def przygotuj_dane(df):
     df['cykl_zageszczania_200'] = znajdz_cykle_zageszczania(df['cisnienie_bar'], cisnienie_min=200)
     df['cykle_zageszczania_200'] = przelicz_cykle_zageszczania_w_dniu(df['cykl_zageszczania_200'])
 
+    # Ilosc przepompowanego oleju
+    df['wydatek_oleju_chwilowy'], df['ilosc_przepompowanego_oleju'] = przelicz_ilosc_oleju(df['cisnienie_bar'], df['RPM'], cisnienie_min=0, r_pto = 1.19, pump_displacement = 69)
+    _ ,  df['ilosc_przepompowanego_oleju_120bar'] = przelicz_ilosc_oleju(df['cisnienie_bar'], df['RPM'], cisnienie_min=120, r_pto=1.19, pump_displacement=69)
 
     return df
+
+
+
+

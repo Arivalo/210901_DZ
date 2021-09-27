@@ -13,11 +13,11 @@ import matplotlib.dates as mdates
 from matplotlib.ticker import MaxNLocator
 import seaborn as sns
 
-## TO DO ##
-# inne
-# - wymuszanie jasnego motywu
-# - komunikat brak danych z dnia
-# - nieprzeciążone dni
+## TODO
+# WYKRESY
+# olej - olej total/>120bar
+# tonokilometrowe x2
+# body cap
 
 
 @st.cache(suppress_st_warning=True, allow_output_mutation=True)
@@ -48,8 +48,9 @@ def download_data(url, haslo=st.secrets['password'], login=st.secrets['username'
             
         except KeyError:
             print(f'Url error: {url}')
-            
+        
         df.ffill(inplace=True)
+        df = df.fillna(0)
         df['updatedAt'] = pd.to_datetime(df['updatedAt']).dt.tz_localize(None)         
             
     return przygotuj_dane(df)
@@ -88,23 +89,45 @@ def tabela_statystyk_dnia(df):
 
     # paliwo
     dane_dnia['Fuel consumed [dm3]'] = [df['Fuel_consumption'].max()]
-    dane_dnia['Fuel consumption per distance [dm3/100km]'] = [df['Fuel_consumption'].max()/df['przebieg_km'].max()*100]
-    dane_dnia['Hourly fuel consumption [dm3/h]'] = [df['Fuel_consumption'].max()/df['motogodziny_total'].max()]
+    if df['przebieg_km'].max() > 0:
+        dane_dnia['Fuel consumption per distance [dm3/100km]'] = [df['Fuel_consumption'].max()/df['przebieg_km'].max()*100]
+    else:
+        dane_dnia['Fuel consumption per distance [dm3/100km]'] = 0
+    if df['motogodziny_total'].max() > 0:
+        dane_dnia['Hourly fuel consumption [dm3/h]'] = [df['Fuel_consumption'].max()/df['motogodziny_total'].max()]
+    else:
+        dane_dnia['Hourly fuel consumption [dm3/h]'] = 0 
 
     # energia hydrauliczna
-    dane_dnia['Hydraulic energy [kJ]'] = [df['hydraulic_energy'].max()]
-    dane_dnia['Compaction hydraulic energy [kJ]'] = [df['energia_hydr_zageszczania'].max()]
+    dane_dnia['Hydraulic energy [GJ]'] = [df['hydraulic_energy'].max()/1000]
+    dane_dnia['Compaction hydraulic energy [GJ]'] = [df['energia_hydr_zageszczania'].max()/1000]
+    
+    # przepompowany olej
+    dane_dnia['Hydraulic oil [m3]'] = [df['ilosc_przepompowanego_oleju'].max()]
+    dane_dnia['Hydraulic oil >120 bar [m3]'] = [df['ilosc_przepompowanego_oleju_120bar'].max()]
+    
+    # Nacisk na osie
+    #temp_df[temp_df['RPM'] > 800]['Nacisk_total']
+    dane_dnia['Max overload >26t [t]'] = max(0, df[df['RPM'].astype(int) > 800]['Nacisk_total'].max()/1000-26)
+    
+    # Masa smieci
+    dane_dnia['Waste mass [t]'] = [df['Masa_smieci'].max()/1000]
+    
+    # Tonokilometry
+    dane_dnia['Waste mass x kilometers [t*km]'] = [df['Tonokilometry_masa_smieci'].max()]
+    dane_dnia['Vehicle overload x kilometers [t*km]'] = [df['Tonokilometry_przeladowane'].max()]    
+    
+    # Zapelnienie skrzyni (w momencie maks nacisku na osie)
+    dane_dnia['Body capacity used [%]'] = [df.loc[df['Nacisk_total'].argmax(), 'zapelnienie_skrzyni_procent']]
 
     dane_dnia = dane_dnia.T.rename(columns={0:"Selected day"})
-    #dane_dnia.columns = dane_dnia.iloc[0]
-    #dane_dnia = dane_dnia.iloc[1:]
-    
-    return dane_dnia.round(1).astype(str)
 
 @st.cache(suppress_st_warning=True, allow_output_mutation=True)
 def wczytaj_statystyki_csv(loc):
 
     df = pd.read_csv(loc, index_col=0)
+    
+    df = df[df.columns[1:]].set_index("dzien", drop=True).T
     
     return df
     
@@ -137,14 +160,15 @@ def stworz_tabele_statystyk(df, data):
     df_out['total'].T['Fuel consumption per distance [dm3/100km]'] = "-"
     df_out['total'].T['Hourly fuel consumption [dm3/h]'] = "-"
     df_out['total'].T['Max overload >26t [t]'] = "-"
+    df_out['total'].T['Body capacity used [%]'] = "-"
     
     ## %%
     # daily
     mth_total = df_out['selected day'].T['Motohours total']
     distance_total = df_out['selected day'].T['Distance [km]']
-    hyd_en_total = df_out['selected day'].T['Hydraulic energy [kJ]']
+    hyd_en_total = df_out['selected day'].T['Hydraulic energy [GJ]']
     
-    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1]
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1,]
     
     percentage_daily = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['selected day'].values, dividers)]
     
@@ -153,9 +177,9 @@ def stworz_tabele_statystyk(df, data):
     # weekly
     mth_total = df_out['avg. week'].T['Motohours total']
     distance_total = df_out['avg. week'].T['Distance [km]']
-    hyd_en_total = df_out['avg. week'].T['Hydraulic energy [kJ]']
+    hyd_en_total = df_out['avg. week'].T['Hydraulic energy [GJ]']
     
-    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1]
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1,]
     
     percentage_weekly = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['avg. week'].values, dividers)]
     
@@ -164,18 +188,18 @@ def stworz_tabele_statystyk(df, data):
     # monthly
     mth_total = df_out['avg. month'].T['Motohours total']
     distance_total = df_out['avg. month'].T['Distance [km]']
-    hyd_en_total = df_out['avg. month'].T['Hydraulic energy [kJ]']
+    hyd_en_total = df_out['avg. month'].T['Hydraulic energy [GJ]']
     
-    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1]
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1,]
     
     percentage_monthly = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['avg. month'].values, dividers)]
     
     df_out[" %"] = percentage_monthly
     
     # fake statystyki
-    df_out.loc['Average of rpm engine per day'] = "-"
-    df_out.loc['Leakage cylinder detection'] = "-"
-    df_out.loc['Time with oil over 60°C [h]'] = "-"
+    # df_out.loc['Average of rpm engine per day'] = "-"
+    # df_out.loc['Leakage cylinder detection'] = "-"
+    # df_out.loc['Time with oil over 60°C [h]'] = "-"
     
     df_out = df_out[['selected day', '%', 'avg. week', '% ', 'avg. month', ' %', 'total']]
     
@@ -254,7 +278,7 @@ def tabela_statystyk_wyswietl(df):
         example
         -------
         input: 6.4
-        output: "6h 24 min"
+        output: "6:24"
         '''
         try:
             HH = int(h)
@@ -262,20 +286,23 @@ def tabela_statystyk_wyswietl(df):
         except ValueError:
             print(h)
             return "-"
+            
+        if mm < 10:
+            mm = f"0{mm}"
         
-        return f"{HH}h {mm}min"
+        return f"{HH}:{mm}"
         
     
     data_cols = ["selected day", "avg. week", "avg. month", "total"]
     mth_cols = ["Motohours total", "Motohours idle", "Motohours 900rpm stop", "Motohours driving",
                 "Motohours >26t"]
-    hyd_cols = ["Hydraulic energy [kJ]", "Compaction hydraulic energy [kJ]"]
+    hyd_cols = ["Hydraulic energy [GJ]", "Compaction hydraulic energy [GJ]"]
     
     for col in data_cols:
         df[col].T[mth_cols] = df[col].T[mth_cols].astype("float64").apply(h_to_time)
-        df[col].T[hyd_cols] = (df[col].T[hyd_cols].astype("float64")/1000).round(1)
+        #df[col].T[hyd_cols] = (df[col].T[hyd_cols].astype("float64")/1000).round(1)
         
-    df = df.rename(index={hyd_cols[0]:"Hydraulic energy [GJ]", hyd_cols[1]:"Compaction hydraulic energy [GJ]"})
+    #df = df.rename(index={hyd_cols[0]:"Hydraulic energy [GJ]", hyd_cols[1]:"Compaction hydraulic energy [GJ]"})
 
     df = df.reset_index().rename(columns={'index':""})
     
@@ -306,13 +333,13 @@ def tabela_statystyk_wyswietl(df):
                "honeydew", "honeydew",
                "mintcream", "mintcream", "mintcream",
                "lemonchiffon", "lemonchiffon",
-               "mistyrose",
-               "floralwhite", "floralwhite", "floralwhite", ]*5],
+               "mistyrose", "mistyrose",
+               "floralwhite", "floralwhite", "floralwhite", "floralwhite","floralwhite",]*5],
                font=dict(size=14),))
     ])
     
     
-    fig.update_layout(height=850)
+    fig.update_layout(height=950)
     
     return fig
 
@@ -428,7 +455,7 @@ im_central = "res/drawing.PNG"
 im_logo2 = "res/logo_faun.png"
 im_logo = "res/logo_zoeller_new.png"
 im_table = "res/tabelka.PNG"
-table_stats = "data/tabela_sierpien.csv"
+table_stats = "data/20269/podsumowanie_dnia/all_days_summary.csv"
 
 # wczytanie plikow
 sketch = Image.open(im_sketch).convert('RGB')
@@ -470,7 +497,7 @@ c1, c2, c3 = st.columns((1,5,1))
 ## c1
 c1.header("Select day:")
 
-data_od = c1.date_input("", value=dt.date.today()-dt.timedelta(days=7), min_value=dt.date(2021,8,1), max_value=dt.date.today(), help="Choose day you want to analyze")
+data_od = c1.date_input("", value=dt.date.today()-dt.timedelta(days=7), min_value=dt.date(2021,8,16), max_value=dt.date.today(), help="Choose day you want to analyze")
 c1.write("------------------")
 
 
@@ -532,6 +559,7 @@ except NameError:
             # labels={'Data_godzina':"Time", "Nacisk_total":"Total weight"})
 
 if not df.empty:
+    #st.write(df.columns)
     ## WYKRESY DOLNE ##
     xfmt = mdates.DateFormatter('%H:%M')
 
@@ -649,6 +677,79 @@ if not df.empty:
     cols[0].write(fig_s0)
     cols[1].write(fig_s1)
     cols[2].write(fig_s2)
+    
+# WYKRESY NOWE
+
+    # OLEJ
+    fig_p4, ax_p4 = plt.subplots(1, figsize=(8,5))
+    plt.plot(df['Data_godzina'], df['ilosc_przepompowanego_oleju'], lw=3, label='hydraulic oil pumped [m3]')
+    plt.plot(df['Data_godzina'], df['ilosc_przepompowanego_oleju_120bar'], lw=3, label='hydraulic oil pumped at >120 bar [m3]')
+    plt.ylabel("Oil pumped", fontsize=24)
+    ax_p4.xaxis.set_major_formatter(xfmt)
+    plt.grid()
+    plt.legend()
+    plt.tight_layout()
+    
+    fig_q4 = wykres_z_tygodnia2(df_stats, data_od, ['Hydraulic oil [m3]', 'Hydraulic oil >120 bar [m3]'], ["hydraulic oil pumped [m3]", "hydraulic oil pumped at >120 bar [m3]"])
+    plt.legend()
+    plt.ylabel("Oil pumped [m3]")
+    plt.tight_layout()
+    
+    fig_r4 = wykres_dystrybucja_v2(df_stats,"Hydraulic oil [m3]", today_stats=dane_z_dnia, bin_w=2)
+    
+    exp4 = st.expander("Hydralic oil")
+    cols = exp4.columns((1,1,1))
+    cols[0].write(fig_p4)
+    cols[1].write(fig_q4)
+    cols[2].write(fig_r4)
+    
+    # TONOKILOMETRY
+    fig_p5, ax_p5 = plt.subplots(1, figsize=(8,5))
+    plt.plot(df['Data_godzina'], df['Tonokilometry_masa_smieci'], lw=3, label='Waste mass x kilometers [t*km]')
+    plt.plot(df['Data_godzina'], df['Tonokilometry_przeladowane'], lw=3, label='Vehicle overload x kilometers [t*km]')
+    plt.ylabel("Mass x kilometers", fontsize=24)
+    ax_p5.xaxis.set_major_formatter(xfmt)
+    plt.grid()
+    plt.legend()
+    plt.tight_layout()
+    
+    fig_q5 = wykres_z_tygodnia2(df_stats, data_od, ['Waste mass x kilometers [t*km]', 'Vehicle overload x kilometers [t*km]'], ['Waste mass x kilometers [t*km]', 'Vehicle overload x kilometers [t*km]'])
+    plt.legend()
+    plt.ylabel("Overload [t]")
+    plt.tight_layout()
+    
+    fig_r5 = wykres_dystrybucja_v2(df_stats,'Waste mass x kilometers [t*km]', today_stats=dane_z_dnia, bin_w=50)
+    
+    exp5 = st.expander("Distance x load")
+    cols = exp5.columns((1,1,1))
+    cols[0].write(fig_p5)
+    cols[1].write(fig_q5)
+    cols[2].write(fig_r5)
+    
+    # BODY CAPACITY
+    fig_p6, ax_p6 = plt.subplots(1, figsize=(8,5))
+    plt.plot(df[df['RPM'] > 800]['Data_godzina'], df[df['RPM'] > 800]['zapelnienie_skrzyni_procent'], lw=3, label='Body capacity used [%]')
+    plt.ylabel("Capacity used [%]", fontsize=24)
+    ax_p6.xaxis.set_major_formatter(xfmt)
+    plt.grid()
+    plt.ylim(0, 101)
+    #plt.legend()
+    plt.tight_layout()
+    
+    fig_q6 = wykres_z_tygodnia2(df_stats, data_od, ['Body capacity used [%]'], ['Body capacity used [%]'])
+    plt.legend()
+    plt.ylabel("Body capacity used [%]")
+    plt.tight_layout()
+    
+    fig_r6 = wykres_dystrybucja_v2(df_stats, 'Body capacity used [%]', today_stats=dane_z_dnia, bin_w=10)
+    
+    exp6 = st.expander("Body capacity")
+    cols = exp6.columns((1,1,1))
+    cols[0].write(fig_p6)
+    cols[1].write(fig_q6)
+    cols[2].write(fig_r6)
+    
+    
 
     
     
