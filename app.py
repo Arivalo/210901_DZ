@@ -120,7 +120,22 @@ def tabela_statystyk_dnia(df):
     # Zapelnienie skrzyni (w momencie maks nacisku na osie)
     dane_dnia['Body capacity used [%]'] = [df.loc[df['Nacisk_total'].argmax(), 'zapelnienie_skrzyni_procent']]
 
+    # energia na tone smieci
+    dane_dnia['Energia hydr na tone smieci [GJ/t]'] = np.round(df['hydraulic_energy'].max() / (df['Masa_smieci'].max()/1000)/1000,2)
+    dane_dnia['Energia hydr zageszczania na tone smieci [GJ/t]'] = np.round(df['energia_hydr_zageszczania'].max() / (df['Masa_smieci'].max()/1000)/1000,2)
+    
+
     dane_dnia = dane_dnia.T.rename(columns={0:"Selected day"})
+    #dane_dnia.columns = dane_dnia.iloc[0]
+    #dane_dnia = dane_dnia.iloc[1:]
+    
+    # Parametry akumulowane
+    # tbc
+    
+    
+    
+    
+    return dane_dnia.round(1).astype(str)
 
 @st.cache(suppress_st_warning=True, allow_output_mutation=True)
 def wczytaj_statystyki_csv(loc):
@@ -168,7 +183,7 @@ def stworz_tabele_statystyk(df, data):
     distance_total = df_out['selected day'].T['Distance [km]']
     hyd_en_total = df_out['selected day'].T['Hydraulic energy [GJ]']
     
-    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1,]
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
     
     percentage_daily = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['selected day'].values, dividers)]
     
@@ -179,7 +194,7 @@ def stworz_tabele_statystyk(df, data):
     distance_total = df_out['avg. week'].T['Distance [km]']
     hyd_en_total = df_out['avg. week'].T['Hydraulic energy [GJ]']
     
-    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1,]
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
     
     percentage_weekly = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['avg. week'].values, dividers)]
     
@@ -190,7 +205,7 @@ def stworz_tabele_statystyk(df, data):
     distance_total = df_out['avg. month'].T['Distance [km]']
     hyd_en_total = df_out['avg. month'].T['Hydraulic energy [GJ]']
     
-    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1,]
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
     
     percentage_monthly = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['avg. month'].values, dividers)]
     
@@ -334,12 +349,13 @@ def tabela_statystyk_wyswietl(df):
                "mintcream", "mintcream", "mintcream",
                "lemonchiffon", "lemonchiffon",
                "mistyrose", "mistyrose",
-               "floralwhite", "floralwhite", "floralwhite", "floralwhite","floralwhite",]*5],
+               "floralwhite", "floralwhite", "floralwhite", "floralwhite","floralwhite",
+               "aliceblue",  "aliceblue",]*5],
                font=dict(size=14),))
     ])
     
     
-    fig.update_layout(height=950)
+    fig.update_layout(height=1100)
     
     return fig
 
@@ -697,7 +713,7 @@ if not df.empty:
     
     fig_r4 = wykres_dystrybucja_v2(df_stats,"Hydraulic oil [m3]", today_stats=dane_z_dnia, bin_w=2)
     
-    exp4 = st.expander("Hydralic oil")
+    exp4 = st.expander("Hydraulic oil")
     cols = exp4.columns((1,1,1))
     cols[0].write(fig_p4)
     cols[1].write(fig_q4)
@@ -726,9 +742,13 @@ if not df.empty:
     cols[1].write(fig_q5)
     cols[2].write(fig_r5)
     
+    
+    ## KOPIA  DF POMOCNICZA
+    df2 = df.copy()[df['RPM'] > 800]
+    
     # BODY CAPACITY
     fig_p6, ax_p6 = plt.subplots(1, figsize=(8,5))
-    plt.plot(df[df['RPM'] > 800]['Data_godzina'], df[df['RPM'] > 800]['zapelnienie_skrzyni_procent'], lw=3, label='Body capacity used [%]')
+    plt.plot(df2['Data_godzina'], df2['zapelnienie_skrzyni_procent'], lw=3, label='Body capacity used [%]')
     plt.ylabel("Capacity used [%]", fontsize=24)
     ax_p6.xaxis.set_major_formatter(xfmt)
     plt.grid()
@@ -748,6 +768,29 @@ if not df.empty:
     cols[0].write(fig_p6)
     cols[1].write(fig_q6)
     cols[2].write(fig_r6)
+    
+    # HYDRAULIC ENERGY PER WASTE
+    fig_p7, ax_p7 = plt.subplots(1, figsize=(8,5))
+    plt.plot(df2['Data_godzina'], df2['hydraulic_energy'] / (df2['Masa_smieci']/1000)/1000, lw=3, label='Hydraulic energy per ton of waste')
+    plt.plot(df2['Data_godzina'], df2['energia_hydr_zageszczania'] / (df2['Masa_smieci']/1000)/1000, lw=3, label='Compation hydraulic energy per ton of waste')
+    plt.ylabel("Hydraulic energy per ton of waste [GJ/t]", fontsize=18)
+    ax_p7.xaxis.set_major_formatter(xfmt)
+    plt.grid()
+    plt.legend()
+    plt.tight_layout()
+    
+    fig_q7 = wykres_z_tygodnia2(df_stats, data_od, ['Energia hydr na tone smieci [GJ/t]', 'Energia hydr zageszczania na tone smieci [GJ/t]'], ['Hydraulic energy per ton of waste', 'Compation hydraulic energy per ton of waste'])
+    plt.legend()
+    plt.ylabel("Hydraulic energy per ton of waste [GJ/t]")
+    plt.tight_layout()
+    
+    fig_r7 = wykres_dystrybucja_v2(df_stats, 'Energia hydr na tone smieci [GJ/t]', today_stats=dane_z_dnia, bin_w=1)
+    
+    exp7 = st.expander("Hydraulic energy per ton")
+    cols = exp7.columns((1,1,1))
+    cols[0].write(fig_p7)
+    cols[1].write(fig_q7)
+    cols[2].write(fig_r7)
     
     
 
