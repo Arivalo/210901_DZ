@@ -91,6 +91,11 @@ def tabela_statystyk_dnia(df):
     # Zapelnienie skrzyni (w momencie maks nacisku na osie)
     dane_dnia['Body capacity used [%]'] = [df.loc[df['Nacisk_total'].argmax(), 'zapelnienie_skrzyni_procent']]
 
+    # energia na tone smieci
+    dane_dnia['Energia hydr na tone smieci [GJ/t]'] = np.round(df['hydraulic_energy'].max() / (df['Masa_smieci'].max()/1000)/1000,2)
+    dane_dnia['Energia hydr zageszczania na tone smieci [GJ/t]'] = np.round(df['energia_hydr_zageszczania'].max() / (df['Masa_smieci'].max()/1000)/1000,2)
+    
+
     dane_dnia = dane_dnia.T.rename(columns={0:"Selected day"})
     #dane_dnia.columns = dane_dnia.iloc[0]
     #dane_dnia = dane_dnia.iloc[1:]
