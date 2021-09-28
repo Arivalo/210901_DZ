@@ -221,27 +221,31 @@ def stworz_tabele_statystyk(df, data):
     return df_out.astype(str)
     
     
-def wykres_z_tygodnia(df, data, lista_kolumn, lista_etykiet, title=""):
+def wykres_z_tygodnia(df, data, lista_kolumn, lista_etykiet, title="", zakres_dni=None):
     
     fig, ax = plt.subplots(1, figsize=(8,5))
     
     colors = ['green', 'orange', 'blue', 'yellow', 'magenta', 'purple', 'cyan']
     
-    dni_tydzien = [str(data + dt.timedelta(days=d-data.weekday())) for d in range(7)]
+    if zakres_dni is None:
+        dni_tydzien = [str(data + dt.timedelta(days=d-data.weekday())) for d in range(7)]
+    else:
+        dni_tydzien = [date for date in pd.date_range(zakres_dni[0], zakres_dni[1]).astype(str) if date in df.columns]
     
-    previous = [0 for x in range(7)]
+    previous = [0 for x in range(len(dni_tydzien))]
     
     for dzien in dni_tydzien:
         if dzien not in df.columns:
             df[dzien] = 0
     
-    ax.bar(data, df[str(data)].T["Motohours total"].max()*1.1, width=1, color="yellow", label="Selected day",
+    if str(data) in dni_tydzien:
+        ax.bar(data, df[str(data)].T["Motohours total"].max()*1.1, width=1, color="yellow", label="Selected day",
             alpha=0.6)
     
     for kolumna, label, color in zip(lista_kolumn, lista_etykiet, colors):
     
         temp_y = df[dni_tydzien].T[kolumna]
-        ax.bar(dni_tydzien,  temp_y, width=0.67,  label=label, bottom=previous, color=color)
+        ax.bar(pd.to_datetime(dni_tydzien),  temp_y, width=0.67,  label=label, bottom=previous, color=color)
         previous = [x+y for x,y in zip(previous, temp_y)]
           
     ax.legend()
@@ -580,19 +584,7 @@ if not df.empty:
     xfmt = mdates.DateFormatter('%H:%M')
 
     ## DAILY
-    # MOTOGODZINY
-    fig_p0, ax_0 = plt.subplots(1, figsize=(8,5))
-    plt.plot(df['Data_godzina'], df['motogodziny_total'], ls='--', lw=3, c='red', label='mth total [h]')
-    plt.fill_between(df['Data_godzina'], 0, df['motogodziny_jazda'], color="green", label='mth driving [h]')
-    plt.fill_between(df['Data_godzina'], df['motogodziny_jazda'], df['motogodziny_jazda']+df['motogodziny_900rpm_zabudowa'], color="orange", label='mth 900rpm stop [h]')
-    plt.fill_between(df['Data_godzina'], df['motogodziny_jazda']+df['motogodziny_900rpm_zabudowa'], df['motogodziny_jazda']+df['motogodziny_900rpm_zabudowa']+df['motogodziny_jalowy'], color="blue", label='mth idle [h]')
     
-    plt.ylabel("Motohours", fontsize=24)
-    plt.title("Daily data:", fontsize=24)
-    ax_0.xaxis.set_major_formatter(xfmt)
-    plt.grid()
-    plt.tight_layout()
-    plt.legend()
     
     # MOTOGODZINY PRZELADOWANY
     fig_p1, ax_1 = plt.subplots(1, figsize=(8,5))
@@ -617,9 +609,7 @@ if not df.empty:
     #c2.plotly_chart(fig)
     
     ## WEEKLY
-    # MOTOGODZINY
-    fig_q0 = wykres_z_tygodnia(df_stats, data_od, ["Motohours driving", "Motohours 900rpm stop", "Motohours idle"], ["Motohours driving", "Motohours 900rpm stop", "Motohours idle"], title="Weekly data")
-    #plt.legend()
+    
     
     # MOTOGODZINY PRZELADOWANY
     fig_q1 = wykres_z_tygodnia2(df_stats, data_od, ["Motohours total", "Motohours >26t"], ["Motohours total", "Motohours >26t"])
@@ -632,9 +622,7 @@ if not df.empty:
     ## NORMAL DISTRIBUTION
     # MOTOGODZINY
     
-    fig_r0 = wykres_dystrybucja_v2(df_stats, "Motohours total", today_stats=dane_z_dnia)
-    plt.title("Distribution", fontsize=24)
-    plt.tight_layout()
+    
     
     # MOTOGODZINY >26t
     fig_r1 = wykres_dystrybucja_v2(df_stats, "Motohours >26t", today_stats=dane_z_dnia)
@@ -670,7 +658,38 @@ if not df.empty:
     
     # wykresy
     exp0 = st.expander("Motohours")
+    
+    zakres_dni0 = exp0.slider("Wybierz zakres dni", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    
+    #exp0.write(pd.date_range(zakres_dni0[0], zakres_dni0[1]).astype(str))
+    
     cols = exp0.columns((1,1,1))
+    
+    # MOTOGODZINY
+    # DAILY
+    fig_p0, ax_0 = plt.subplots(1, figsize=(8,5))
+    plt.plot(df['Data_godzina'], df['motogodziny_total'], ls='--', lw=3, c='red', label='mth total [h]')
+    plt.fill_between(df['Data_godzina'], 0, df['motogodziny_jazda'], color="green", label='mth driving [h]')
+    plt.fill_between(df['Data_godzina'], df['motogodziny_jazda'], df['motogodziny_jazda']+df['motogodziny_900rpm_zabudowa'], color="orange", label='mth 900rpm stop [h]')
+    plt.fill_between(df['Data_godzina'], df['motogodziny_jazda']+df['motogodziny_900rpm_zabudowa'], df['motogodziny_jazda']+df['motogodziny_900rpm_zabudowa']+df['motogodziny_jalowy'], color="blue", label='mth idle [h]')
+    
+    plt.ylabel("Motohours", fontsize=24)
+    plt.title("Daily data:", fontsize=24)
+    ax_0.xaxis.set_major_formatter(xfmt)
+    plt.grid()
+    plt.tight_layout()
+    plt.legend()
+    
+    # WEEKLY
+    
+    fig_q0 = wykres_z_tygodnia(df_stats, data_od, ["Motohours driving", "Motohours 900rpm stop", "Motohours idle"], ["Motohours driving", "Motohours 900rpm stop", "Motohours idle"], title="", zakres_dni=zakres_dni0)
+    #plt.legend()
+    
+    # DYSTRYBUCJA
+    fig_r0 = wykres_dystrybucja_v2(df_stats, "Motohours total", today_stats=dane_z_dnia)
+    plt.title("Distribution", fontsize=24)
+    plt.tight_layout()
+    
     cols[0].write(fig_p0)
     cols[1].write(fig_q0)
     cols[2].write(fig_r0)
@@ -773,7 +792,7 @@ if not df.empty:
     fig_p7, ax_p7 = plt.subplots(1, figsize=(8,5))
     plt.plot(df2['Data_godzina'], df2['hydraulic_energy'] / (df2['Masa_smieci']/1000)/1000, lw=3, label='Hydraulic energy per ton of waste')
     plt.plot(df2['Data_godzina'], df2['energia_hydr_zageszczania'] / (df2['Masa_smieci']/1000)/1000, lw=3, label='Compation hydraulic energy per ton of waste')
-    plt.ylabel("Hydraulic energy per ton of waste [GJ/t]", fontsize=18)
+    plt.ylabel("Hydraulic energy per ton of waste [GJ/t]", fontsize=14)
     ax_p7.xaxis.set_major_formatter(xfmt)
     plt.grid()
     plt.legend()
