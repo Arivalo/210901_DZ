@@ -120,7 +120,22 @@ def tabela_statystyk_dnia(df):
     # Zapelnienie skrzyni (w momencie maks nacisku na osie)
     dane_dnia['Body capacity used [%]'] = [df.loc[df['Nacisk_total'].argmax(), 'zapelnienie_skrzyni_procent']]
 
+    # energia na tone smieci
+    dane_dnia['Energia hydr na tone smieci [GJ/t]'] = np.round(df['hydraulic_energy'].max() / (df['Masa_smieci'].max()/1000)/1000,2)
+    dane_dnia['Energia hydr zageszczania na tone smieci [GJ/t]'] = np.round(df['energia_hydr_zageszczania'].max() / (df['Masa_smieci'].max()/1000)/1000,2)
+    
+
     dane_dnia = dane_dnia.T.rename(columns={0:"Selected day"})
+    #dane_dnia.columns = dane_dnia.iloc[0]
+    #dane_dnia = dane_dnia.iloc[1:]
+    
+    # Parametry akumulowane
+    # tbc
+    
+    
+    
+    
+    return dane_dnia.round(1).astype(str)
 
 @st.cache(suppress_st_warning=True, allow_output_mutation=True)
 def wczytaj_statystyki_csv(loc):
@@ -168,7 +183,7 @@ def stworz_tabele_statystyk(df, data):
     distance_total = df_out['selected day'].T['Distance [km]']
     hyd_en_total = df_out['selected day'].T['Hydraulic energy [GJ]']
     
-    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1,]
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
     
     percentage_daily = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['selected day'].values, dividers)]
     
@@ -179,7 +194,7 @@ def stworz_tabele_statystyk(df, data):
     distance_total = df_out['avg. week'].T['Distance [km]']
     hyd_en_total = df_out['avg. week'].T['Hydraulic energy [GJ]']
     
-    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1,]
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
     
     percentage_weekly = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['avg. week'].values, dividers)]
     
@@ -190,7 +205,7 @@ def stworz_tabele_statystyk(df, data):
     distance_total = df_out['avg. month'].T['Distance [km]']
     hyd_en_total = df_out['avg. month'].T['Hydraulic energy [GJ]']
     
-    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1,]
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
     
     percentage_monthly = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['avg. month'].values, dividers)]
     
@@ -205,28 +220,33 @@ def stworz_tabele_statystyk(df, data):
     
     return df_out.astype(str)
     
-    
-def wykres_z_tygodnia(df, data, lista_kolumn, lista_etykiet, title=""):
+
+#@st.cache(suppress_st_warning=True)
+def wykres_z_tygodnia(df, data, lista_kolumn, lista_etykiet, title="", zakres_dni=None):
     
     fig, ax = plt.subplots(1, figsize=(8,5))
     
     colors = ['green', 'orange', 'blue', 'yellow', 'magenta', 'purple', 'cyan']
     
-    dni_tydzien = [str(data + dt.timedelta(days=d-data.weekday())) for d in range(7)]
+    if zakres_dni is None:
+        dni_tydzien = [str(data + dt.timedelta(days=d-data.weekday())) for d in range(7)]
+    else:
+        dni_tydzien = [date for date in pd.date_range(zakres_dni[0], zakres_dni[1]).astype(str) if date in df.columns]
     
-    previous = [0 for x in range(7)]
+    previous = [0 for x in range(len(dni_tydzien))]
     
     for dzien in dni_tydzien:
         if dzien not in df.columns:
             df[dzien] = 0
     
-    ax.bar(data, df[str(data)].T["Motohours total"].max()*1.1, width=1, color="yellow", label="Selected day",
+    if str(data) in dni_tydzien:
+        ax.bar(data, df[str(data)].T["Motohours total"].max()*1.1, width=1, color="yellow", label="Selected day",
             alpha=0.6)
     
     for kolumna, label, color in zip(lista_kolumn, lista_etykiet, colors):
     
         temp_y = df[dni_tydzien].T[kolumna]
-        ax.bar(dni_tydzien,  temp_y, width=0.67,  label=label, bottom=previous, color=color)
+        ax.bar(pd.to_datetime(dni_tydzien),  temp_y, width=0.67,  label=label, bottom=previous, color=color)
         previous = [x+y for x,y in zip(previous, temp_y)]
           
     ax.legend()
@@ -235,12 +255,16 @@ def wykres_z_tygodnia(df, data, lista_kolumn, lista_etykiet, title=""):
     plt.tight_layout()
     
     return fig
-    
-def wykres_z_tygodnia2(df, data, lista_kolumn, lista_etykiet, title=""):
+
+#@st.cache(suppress_st_warning=True)    
+def wykres_z_tygodnia2(df, data, lista_kolumn, lista_etykiet, title="", zakres_dni=None):
     
     fig, ax = plt.subplots(1, figsize=(8,5))
     
-    dni_tydzien = [str(data + dt.timedelta(days=d-data.weekday())) for d in range(7)]
+    if zakres_dni is None:
+        dni_tydzien = [str(data + dt.timedelta(days=d-data.weekday())) for d in range(7)]
+    else:
+        dni_tydzien = [date for date in pd.date_range(zakres_dni[0], zakres_dni[1]).astype(str) if date in df.columns]
     
     for dzien in dni_tydzien:
         if dzien not in df.columns:
@@ -261,7 +285,8 @@ def wykres_z_tygodnia2(df, data, lista_kolumn, lista_etykiet, title=""):
     
     return fig
     
-    
+
+@st.cache(suppress_st_warning=True)   
 def tabela_statystyk_wyswietl(df):
 
     def my_value(number):
@@ -334,16 +359,17 @@ def tabela_statystyk_wyswietl(df):
                "mintcream", "mintcream", "mintcream",
                "lemonchiffon", "lemonchiffon",
                "mistyrose", "mistyrose",
-               "floralwhite", "floralwhite", "floralwhite", "floralwhite","floralwhite",]*5],
+               "floralwhite", "floralwhite", "floralwhite", "floralwhite","floralwhite",
+               "aliceblue",  "aliceblue",]*5],
                font=dict(size=14),))
     ])
     
     
-    fig.update_layout(height=950)
+    fig.update_layout(height=1100)
     
     return fig
 
-
+#@st.cache(suppress_st_warning=True)
 def wykres_dystrybucja(df, dane_z_dnia, kolumna):
 
     fig, ax = plt.subplots(1, figsize=(8,5))
@@ -372,7 +398,7 @@ def wykres_dystrybucja(df, dane_z_dnia, kolumna):
     
     return fig
     
-    
+#@st.cache(suppress_st_warning=True)  
 def wykres_dystrybucja2(df, dane_z_dnia, kolumna):
 
     fig, ax = plt.subplots(1, figsize=(8,5))
@@ -400,7 +426,8 @@ def wykres_dystrybucja2(df, dane_z_dnia, kolumna):
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
     
     return fig
-    
+
+#@st.cache(suppress_st_warning=True) 
 def wykres_dystrybucja_v2(df, stat, today_stats=None, mean=True, bin_w=1, fs=(8,5), xlabel=None):
     
     fig, ax = plt.subplots(1, figsize=fs)
@@ -563,8 +590,20 @@ if not df.empty:
     ## WYKRESY DOLNE ##
     xfmt = mdates.DateFormatter('%H:%M')
 
-    ## DAILY
-    # MOTOGODZINY
+    
+    ## wykresy rozwijane
+    
+    exp0 = st.expander("Motohours")
+    
+    cols = exp0.columns((2,3,2))
+    
+    zakres_dni0 = cols[1].slider("Range of days", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    
+    cols = exp0.columns((1,1,1))
+    
+    ## MOTOGODZINY ##
+    
+    # DAILY
     fig_p0, ax_0 = plt.subplots(1, figsize=(8,5))
     plt.plot(df['Data_godzina'], df['motogodziny_total'], ls='--', lw=3, c='red', label='mth total [h]')
     plt.fill_between(df['Data_godzina'], 0, df['motogodziny_jazda'], color="green", label='mth driving [h]')
@@ -578,7 +617,28 @@ if not df.empty:
     plt.tight_layout()
     plt.legend()
     
-    # MOTOGODZINY PRZELADOWANY
+    # WEEKLY
+    
+    fig_q0 = wykres_z_tygodnia(df_stats, data_od, ["Motohours driving", "Motohours 900rpm stop", "Motohours idle"], ["Motohours driving", "Motohours 900rpm stop", "Motohours idle"], title="", zakres_dni=zakres_dni0)
+    #plt.legend()
+    
+    # DYSTRYBUCJA
+    fig_r0 = wykres_dystrybucja_v2(df_stats, "Motohours total", today_stats=dane_z_dnia)
+    plt.title("Distribution", fontsize=24)
+    plt.tight_layout()
+    
+    cols[0].write(fig_p0)
+    cols[1].write(fig_q0)
+    cols[2].write(fig_r0)
+    
+    ## MOTOGODZINY PRZEŁADOWANE ##
+    
+    exp1 = st.expander("Motohours overloaded")
+    
+    cols = exp1.columns((2,3,2))
+    
+    zakres_dni1 = cols[1].slider("Range of days ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    
     fig_p1, ax_1 = plt.subplots(1, figsize=(8,5))
     plt.plot(df['Data_godzina'], df['motogodziny_total'], lw=3, label='mth total [h]')
     plt.plot(df['Data_godzina'], df['motogodziny_przeladowana'], lw=3, label='mth overload [h]')
@@ -588,7 +648,24 @@ if not df.empty:
     plt.tight_layout()
     plt.legend()
     
-    # PRZEBIEG + PRZELADOWANY
+    fig_q1 = wykres_z_tygodnia2(df_stats, data_od, ["Motohours total", "Motohours >26t"], ["Motohours total", "Motohours >26t"], zakres_dni=zakres_dni1)
+    
+    fig_r1 = wykres_dystrybucja_v2(df_stats, "Motohours >26t", today_stats=dane_z_dnia)
+    
+    cols = exp1.columns((1,1,1))
+    cols[0].write(fig_p1)
+    cols[1].write(fig_q1)
+    cols[2].write(fig_r1)
+    
+    
+    ## PRZEBIEG DYSTANS ##
+    
+    exp2 = st.expander("Distance")
+    
+    cols = exp2.columns((2,3,2))
+    
+    zakres_dni2 = cols[1].slider("Range of days  ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    
     fig_p2, ax_2 = plt.subplots(1, figsize=(8,5))
     plt.plot(df['Data_godzina'], df['przebieg_km'], lw=3, label='Total distance [km]')
     plt.plot(df['Data_godzina'], df['przebieg_km_przeladowana'], lw=3, label='Distance with overload >26t [km]')
@@ -597,38 +674,24 @@ if not df.empty:
     plt.grid()
     plt.tight_layout()
     plt.legend()
-
-    #c2.plotly_chart(fig)
     
-    ## WEEKLY
-    # MOTOGODZINY
-    fig_q0 = wykres_z_tygodnia(df_stats, data_od, ["Motohours driving", "Motohours 900rpm stop", "Motohours idle"], ["Motohours driving", "Motohours 900rpm stop", "Motohours idle"], title="Weekly data")
-    #plt.legend()
+    fig_q2 = wykres_z_tygodnia2(df_stats, data_od, ["Distance [km]", "Distance >26t [km]"], ["Distance [km]", "Distance >26t [km]"], zakres_dni=zakres_dni2)
     
-    # MOTOGODZINY PRZELADOWANY
-    fig_q1 = wykres_z_tygodnia2(df_stats, data_od, ["Motohours total", "Motohours >26t"], ["Motohours total", "Motohours >26t"])
-    #plt.legend()
-    
-    # DYSTANS
-    fig_q2 = wykres_z_tygodnia2(df_stats, data_od, ["Distance [km]", "Distance >26t [km]"], ["Distance [km]", "Distance >26t [km]"])
-    #plt.legend()
-    
-    ## NORMAL DISTRIBUTION
-    # MOTOGODZINY
-    
-    fig_r0 = wykres_dystrybucja_v2(df_stats, "Motohours total", today_stats=dane_z_dnia)
-    plt.title("Distribution", fontsize=24)
-    plt.tight_layout()
-    
-    # MOTOGODZINY >26t
-    fig_r1 = wykres_dystrybucja_v2(df_stats, "Motohours >26t", today_stats=dane_z_dnia)
-    
-    # DYSTANS
     fig_r2 = wykres_dystrybucja_v2(df_stats, "Distance [km]", today_stats=dane_z_dnia, bin_w=20)
     
-    #cols[2].plotly_chart(fig)
-
-# TYMCZASOWY WYKRES OBCIĄŻENIA OSI
+    cols = exp2.columns((1,1,1))
+    cols[0].write(fig_p2)
+    cols[1].write(fig_q2)
+    cols[2].write(fig_r2)
+    
+    ## OBCIĄŻENIE ##
+    
+    exp3 = st.expander("Load")
+    
+    cols = exp3.columns((2,3,2))
+    
+    zakres_dni3 = cols[1].slider("Range of days   ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    
     fig_s0, ax_s0 = plt.subplots(1, figsize=(8,5))
     plt.plot(df[df['RPM'] > 800]['Data_godzina'], df[df['RPM'] > 800]['Nacisk_total'], lw=3, label='mth total [h]')
     plt.ylabel("Load", fontsize=24)
@@ -638,41 +701,13 @@ if not df.empty:
     plt.tight_layout()
     #plt.legend()
     
-    
-    
-# WEEKLY OBCIĄŻENIA
-
-    fig_s1 = wykres_z_tygodnia2(df_stats, data_od, ["Max overload >26t [t]"], ["Max overload >26t [t]"])
+    fig_s1 = wykres_z_tygodnia2(df_stats, data_od, ["Max overload >26t [t]"], ["Max overload >26t [t]"], zakres_dni=zakres_dni3)
     #plt.legend()
     plt.ylabel("Overload [t]")
     plt.tight_layout()
     
-    
-# DYSTRYBUCJA
-
     fig_s2 = wykres_dystrybucja_v2(df_stats,"Max overload >26t [t]", today_stats=dane_z_dnia)   
     
-    # wykresy
-    exp0 = st.expander("Motohours")
-    cols = exp0.columns((1,1,1))
-    cols[0].write(fig_p0)
-    cols[1].write(fig_q0)
-    cols[2].write(fig_r0)
-    
-    exp1 = st.expander("Motohours overloaded")
-    cols = exp1.columns((1,1,1))
-    cols[0].write(fig_p1)
-    cols[1].write(fig_q1)
-    cols[2].write(fig_r1)
-    
-    exp2 = st.expander("Distance")
-    cols = exp2.columns((1,1,1))
-    cols[0].write(fig_p2)
-    cols[1].write(fig_q2)
-    cols[2].write(fig_r2)
-    
-    
-    exp3 = st.expander("Load")
     cols = exp3.columns((1,1,1))
     cols[0].write(fig_s0)
     cols[1].write(fig_s1)
@@ -681,6 +716,12 @@ if not df.empty:
 # WYKRESY NOWE
 
     # OLEJ
+    exp4 = st.expander("Hydraulic oil")
+    
+    cols = exp4.columns((2,3,2))
+    
+    zakres_dni4 = cols[1].slider("Range of days    ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    
     fig_p4, ax_p4 = plt.subplots(1, figsize=(8,5))
     plt.plot(df['Data_godzina'], df['ilosc_przepompowanego_oleju'], lw=3, label='hydraulic oil pumped [m3]')
     plt.plot(df['Data_godzina'], df['ilosc_przepompowanego_oleju_120bar'], lw=3, label='hydraulic oil pumped at >120 bar [m3]')
@@ -690,20 +731,26 @@ if not df.empty:
     plt.legend()
     plt.tight_layout()
     
-    fig_q4 = wykres_z_tygodnia2(df_stats, data_od, ['Hydraulic oil [m3]', 'Hydraulic oil >120 bar [m3]'], ["hydraulic oil pumped [m3]", "hydraulic oil pumped at >120 bar [m3]"])
+    fig_q4 = wykres_z_tygodnia2(df_stats, data_od, ['Hydraulic oil [m3]', 'Hydraulic oil >120 bar [m3]'], ["hydraulic oil pumped [m3]", "hydraulic oil pumped at >120 bar [m3]"], zakres_dni=zakres_dni4)
     plt.legend()
     plt.ylabel("Oil pumped [m3]")
     plt.tight_layout()
     
     fig_r4 = wykres_dystrybucja_v2(df_stats,"Hydraulic oil [m3]", today_stats=dane_z_dnia, bin_w=2)
     
-    exp4 = st.expander("Hydralic oil")
     cols = exp4.columns((1,1,1))
     cols[0].write(fig_p4)
     cols[1].write(fig_q4)
     cols[2].write(fig_r4)
     
+    
     # TONOKILOMETRY
+    exp5 = st.expander("Distance x load")
+    
+    cols = exp5.columns((2,3,2))
+    
+    zakres_dni5 = cols[1].slider("Range of days     ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    
     fig_p5, ax_p5 = plt.subplots(1, figsize=(8,5))
     plt.plot(df['Data_godzina'], df['Tonokilometry_masa_smieci'], lw=3, label='Waste mass x kilometers [t*km]')
     plt.plot(df['Data_godzina'], df['Tonokilometry_przeladowane'], lw=3, label='Vehicle overload x kilometers [t*km]')
@@ -713,22 +760,31 @@ if not df.empty:
     plt.legend()
     plt.tight_layout()
     
-    fig_q5 = wykres_z_tygodnia2(df_stats, data_od, ['Waste mass x kilometers [t*km]', 'Vehicle overload x kilometers [t*km]'], ['Waste mass x kilometers [t*km]', 'Vehicle overload x kilometers [t*km]'])
+    fig_q5 = wykres_z_tygodnia2(df_stats, data_od, ['Waste mass x kilometers [t*km]', 'Vehicle overload x kilometers [t*km]'], ['Waste mass x kilometers [t*km]', 'Vehicle overload x kilometers [t*km]'], zakres_dni=zakres_dni5)
     plt.legend()
     plt.ylabel("Overload [t]")
     plt.tight_layout()
     
     fig_r5 = wykres_dystrybucja_v2(df_stats,'Waste mass x kilometers [t*km]', today_stats=dane_z_dnia, bin_w=50)
     
-    exp5 = st.expander("Distance x load")
     cols = exp5.columns((1,1,1))
     cols[0].write(fig_p5)
     cols[1].write(fig_q5)
     cols[2].write(fig_r5)
     
+    
+    ## KOPIA  DF POMOCNICZA
+    df2 = df.copy()[df['RPM'] > 800]
+    
     # BODY CAPACITY
+    exp6 = st.expander("Body capacity")
+    
+    cols = exp6.columns((2,3,2))
+    
+    zakres_dni6 = cols[1].slider("Range of days      ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    
     fig_p6, ax_p6 = plt.subplots(1, figsize=(8,5))
-    plt.plot(df[df['RPM'] > 800]['Data_godzina'], df[df['RPM'] > 800]['zapelnienie_skrzyni_procent'], lw=3, label='Body capacity used [%]')
+    plt.plot(df2['Data_godzina'], df2['zapelnienie_skrzyni_procent'], lw=3, label='Body capacity used [%]')
     plt.ylabel("Capacity used [%]", fontsize=24)
     ax_p6.xaxis.set_major_formatter(xfmt)
     plt.grid()
@@ -736,18 +792,45 @@ if not df.empty:
     #plt.legend()
     plt.tight_layout()
     
-    fig_q6 = wykres_z_tygodnia2(df_stats, data_od, ['Body capacity used [%]'], ['Body capacity used [%]'])
+    fig_q6 = wykres_z_tygodnia2(df_stats, data_od, ['Body capacity used [%]'], ['Body capacity used [%]'], zakres_dni=zakres_dni6)
     plt.legend()
     plt.ylabel("Body capacity used [%]")
     plt.tight_layout()
     
     fig_r6 = wykres_dystrybucja_v2(df_stats, 'Body capacity used [%]', today_stats=dane_z_dnia, bin_w=10)
     
-    exp6 = st.expander("Body capacity")
     cols = exp6.columns((1,1,1))
     cols[0].write(fig_p6)
     cols[1].write(fig_q6)
     cols[2].write(fig_r6)
+    
+    # HYDRAULIC ENERGY PER WASTE
+    exp7 = st.expander("Hydraulic energy per ton")
+    
+    cols = exp7.columns((2,3,2))
+    
+    zakres_dni7 = cols[1].slider("Range of days       ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    
+    fig_p7, ax_p7 = plt.subplots(1, figsize=(8,5))
+    plt.plot(df2['Data_godzina'], df2['hydraulic_energy'] / (df2['Masa_smieci']/1000)/1000, lw=3, label='Hydraulic energy per ton of waste')
+    plt.plot(df2['Data_godzina'], df2['energia_hydr_zageszczania'] / (df2['Masa_smieci']/1000)/1000, lw=3, label='Compation hydraulic energy per ton of waste')
+    plt.ylabel("Hydraulic energy per ton of waste [GJ/t]", fontsize=14)
+    ax_p7.xaxis.set_major_formatter(xfmt)
+    plt.grid()
+    plt.legend()
+    plt.tight_layout()
+    
+    fig_q7 = wykres_z_tygodnia2(df_stats, data_od, ['Energia hydr na tone smieci [GJ/t]', 'Energia hydr zageszczania na tone smieci [GJ/t]'], ['Hydraulic energy per ton of waste', 'Compation hydraulic energy per ton of waste'], zakres_dni=zakres_dni7)
+    plt.legend()
+    plt.ylabel("Hydraulic energy per ton of waste [GJ/t]")
+    plt.tight_layout()
+    
+    fig_r7 = wykres_dystrybucja_v2(df_stats, 'Energia hydr na tone smieci [GJ/t]', today_stats=dane_z_dnia, bin_w=1)
+    
+    cols = exp7.columns((1,1,1))
+    cols[0].write(fig_p7)
+    cols[1].write(fig_q7)
+    cols[2].write(fig_r7)
     
     
 

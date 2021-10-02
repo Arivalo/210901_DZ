@@ -7,7 +7,7 @@ from scipy.signal import find_peaks
 
 
 
-def przelicz_polozenie_sciany(series):
+def przelicz_polozenie_sciany(series, series_rpm):
     '''
     wartości na CANie są od 0 do 4095. 0 oznacza 0mm, 4095 oznacza 10000mm    
     
@@ -19,7 +19,14 @@ def przelicz_polozenie_sciany(series):
     
     
     polozenie_mm = series * 10000 / 4095
-    
+
+    # filtr - ustawia jako nan wszystkie wiersze gdzie rpm<800 poniewaz sygnal z czasu gdy zabudowa jest wlaczona jest bardziej wiarygodny
+    polozenie_mm[series_rpm<800] = np.nan
+
+    polozenie_mm[polozenie_mm < 10] = np.nan
+
+    polozenie_mm = polozenie_mm.fillna(method='ffill')
+
     return polozenie_mm
     
 def przelicz_przebieg(series_predkosc_osi):
@@ -434,6 +441,28 @@ def oblicz_procent_zapelnienia_skrzyni(x1, polozenie_sciany_max = 4227):
     
     return procent
 
+def oblicz_energie_na_tone(masa_smieci_series, energia_hydrauliczna_series):
+    '''
+
+    :param masa_smieci_series:  # w kg
+    :param energia_hydrauliczna_series: w kJ
+    :return:
+
+    energia_na_tone - energia w przeliczeniu na 1 tone zebranych smieci w kJ/t
+    '''
+
+    masa_t = masa_smieci_series/1000 # masa smieci w tonach
+
+    energia_na_tone = energia_hydrauliczna_series / masa_t # kJ/t
+
+    #200*1000 /
+
+    #energia_na_tone =
+    energia_na_tone = energia_na_tone.round(1)
+
+
+    return energia_na_tone
+
 
 def oblicz_tonokilometry(series_masa_smieci, series_distance_m, min_masa_smieci_kg=0):
     """
@@ -736,10 +765,12 @@ def przygotuj_dane(df):
     df['energia_z_paliwa'] = przelicz_energie_z_paliwa(df['Fuel_consumption'], density = 0.82, efficiency = 0.2, heat_value = 43000)
 
     # Zapelnienie skrzyni
-    df['polozenie_sciany_mm'] = przelicz_polozenie_sciany(df['polozenie_sciany'])
+    df['polozenie_sciany_mm'] = przelicz_polozenie_sciany(df['polozenie_sciany'], df['RPM'])
     df['zapelnienie_skrzyni_procent'] = oblicz_procent_zapelnienia_skrzyni(df['polozenie_sciany_mm'], c)
 
     # Masa i gestosc smieci
+    df.loc[(df['predkosc_kol'] >1) & (df['RPM'] < 800), 'Nacisk_osie_23'] = np.nan
+    df['Nacisk_osie_23'] = df['Nacisk_osie_23'].fillna(method='ffill').fillna(method='bfill')
     df['srodek_ciezkosci_smieci'], df['Masa_smieci'] , df['Nacisk_total'], df['Nacisk_os_1'], df['ratio_N1N2'] = przelicz_naciski_i_masy(N = df['Nacisk_osie_23'], x1 = df['polozenie_sciany_mm'], Wp = Wp, a = a, b = b, c=c, L = L)
     df['distance_m_przeladowana'], df['przebieg_km_przeladowana'] = przelicz_przebieg_z_naciskiem_X(df['predkosc_kol'], df['Nacisk_total'], nacisk_na_osie_max = 26000 )
     df['gestosc_smieci_min'] = oblicz_minimalna_gestosc_pelnej_skrzyni(df['Masa_smieci'], c, A)
@@ -764,6 +795,11 @@ def przygotuj_dane(df):
     # Ilosc przepompowanego oleju
     df['wydatek_oleju_chwilowy'], df['ilosc_przepompowanego_oleju'] = przelicz_ilosc_oleju(df['cisnienie_bar'], df['RPM'], cisnienie_min=0, r_pto = 1.19, pump_displacement = 69)
     _ ,  df['ilosc_przepompowanego_oleju_120bar'] = przelicz_ilosc_oleju(df['cisnienie_bar'], df['RPM'], cisnienie_min=120, r_pto=1.19, pump_displacement=69)
+
+    # Energia na tone
+    df['energia_hydr_na_tone_smieci'] = oblicz_energie_na_tone(df['Masa_smieci'], df['hydraulic_energy'], )
+    df['energia_hydr_zageszczania_na_tone_smieci'] = oblicz_energie_na_tone(df['Masa_smieci'], df['energia_hydr_zageszczania'])
+
 
     return df
 
