@@ -92,8 +92,11 @@ def tabela_statystyk_dnia(df):
     dane_dnia['Body capacity used [%]'] = [df.loc[df['Nacisk_total'].argmax(), 'zapelnienie_skrzyni_procent']]
 
     # energia na tone smieci
-    dane_dnia['Energia hydr na tone smieci [GJ/t]'] = np.round(df['hydraulic_energy'].max() / (df['Masa_smieci'].max()/1000)/1000,2)
-    dane_dnia['Energia hydr zageszczania na tone smieci [GJ/t]'] = np.round(df['energia_hydr_zageszczania'].max() / (df['Masa_smieci'].max()/1000)/1000,2)
+    dane_dnia['Hydraulic energy per 1 t of waste [GJ/t]'] = np.round(df['hydraulic_energy'].max() / (df['Masa_smieci'].max()/1000)/1000,2)
+    dane_dnia['Compaction hydraulic energy per 1 t of waste [GJ/t]'] = np.round(df['energia_hydr_zageszczania'].max() / (df['Masa_smieci'].max()/1000)/1000,2)
+    
+    # srednia moc ukladu hydraulicznego w czasie pracy zabudowy (rpm=900)
+    dane_dnia['Average power of hydraulic system during body operation [kW]'] = df.loc[(df['RPM']>800) & (df['predkosc_kol']<2),'hydrualic_power'].mean()
     
 
     dane_dnia = dane_dnia.T.rename(columns={0:"Selected day"})
