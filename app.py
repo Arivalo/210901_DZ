@@ -826,17 +826,34 @@ if not df.empty:
     plt.legend()
     plt.tight_layout()
     
-    fig_q7 = wykres_z_tygodnia2(df_stats, data_od, ['Energia hydr na tone smieci [GJ/t]', 'Energia hydr zageszczania na tone smieci [GJ/t]'], ['Hydraulic energy per ton of waste', 'Compation hydraulic energy per ton of waste'], zakres_dni=zakres_dni7)
+    fig_q7 = wykres_z_tygodnia2(df_stats, data_od, ['Hydraulic energy per 1 t of waste [GJ/t]', 'Compaction hydraulic energy per 1 t of waste [GJ/t]'], ['Hydraulic energy per 1 t of waste [GJ/t]', 'Compaction hydraulic energy per 1 t of waste [GJ/t]'], zakres_dni=zakres_dni7)
     plt.legend()
     plt.ylabel("Hydraulic energy per ton of waste [GJ/t]")
     plt.tight_layout()
     
-    fig_r7 = wykres_dystrybucja_v2(df_stats, 'Energia hydr na tone smieci [GJ/t]', today_stats=dane_z_dnia, bin_w=1)
+    fig_r7 = wykres_dystrybucja_v2(df_stats, 'Hydraulic energy per 1 t of waste [GJ/t]', today_stats=dane_z_dnia, bin_w=1)
     
     cols = exp7.columns((1,1,1))
     cols[0].write(fig_p7)
     cols[1].write(fig_q7)
     cols[2].write(fig_r7)
+    
+    exp8 = st.expander("Average power of hydraulic system during body operation")
+    
+    cols = exp8.columns((2,3,2))
+    
+    zakres_dni8 = cols[1].slider("Range of days        ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    
+    fig_q8 = wykres_z_tygodnia2(df_stats, data_od, ['Average power of hydraulic system during body operation [kW]'], ['Average power of hydraulic system during body operation [kW]'], zakres_dni=zakres_dni8)
+    plt.legend()
+    plt.ylabel("Average power of hydraulic system during body operation [kW]")
+    plt.tight_layout()
+    
+    fig_r8 = wykres_dystrybucja_v2(df_stats, 'Average power of hydraulic system during body operation [kW]', today_stats=dane_z_dnia, bin_w=1)
+    
+    cols = exp8.columns((1,1))
+    cols[0].write(fig_q8)
+    cols[1].write(fig_r8)
     
     
 
