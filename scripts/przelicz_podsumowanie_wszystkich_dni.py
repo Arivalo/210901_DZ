@@ -48,6 +48,12 @@ for plik in podsumowanie_files:
     df_temp = pd.read_csv(path_to_save_podsumowanie + '\\' + plik)
     
     summary = pd.concat((summary, df_temp))
+    
+    summary['Waste mass [t] cumulative'] = summary['Waste mass [t]'].cumsum()
+    
+    
+    
+    
 
 summary = summary.reset_index(drop=True)
 summary.to_csv(path_to_save_podsumowanie + '\\' + file_name)
