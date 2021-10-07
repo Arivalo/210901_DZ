@@ -182,6 +182,7 @@ def stworz_tabele_statystyk(df, data):
     df_out['total'].T['Hydraulic energy per 1 t of waste [GJ/t]'] = "-"
     df_out['total'].T['Compaction hydraulic energy per 1 t of waste [GJ/t]'] = "-"
     df_out['total'].T['Average power of hydraulic system during body operation [kW]'] = "-"
+    df_out['total'].T['Waste mass [t] cumulative'] = np.ceil(df.T["Waste mass [t] cumulative"].max())
     
     ## %%
     # daily
@@ -190,7 +191,7 @@ def stworz_tabele_statystyk(df, data):
     hyd_en_total = df_out['selected day'].T['Hydraulic energy [GJ]']
     
     
-    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
     
     #print(dividers)
     percentage_daily = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['selected day'].values, dividers)]
@@ -202,7 +203,7 @@ def stworz_tabele_statystyk(df, data):
     distance_total = df_out['avg. week'].T['Distance [km]']
     hyd_en_total = df_out['avg. week'].T['Hydraulic energy [GJ]']
     
-    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
     
     percentage_weekly = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['avg. week'].values, dividers)]
     
@@ -213,7 +214,7 @@ def stworz_tabele_statystyk(df, data):
     distance_total = df_out['avg. month'].T['Distance [km]']
     hyd_en_total = df_out['avg. month'].T['Hydraulic energy [GJ]']
     
-    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
     
     percentage_monthly = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['avg. month'].values, dividers)]
     
@@ -445,9 +446,12 @@ def wykres_dystrybucja_v2(df, stat, today_stats=None, mean=True, bin_w=1, fs=(8,
     df_hist = df.T
     df_hist = df_hist[df_hist["Motohours total"] > 0]
     
-    sns.histplot(data=df_hist, x=stat, color="gray", stat='count', line_kws={"color":"red"}, binwidth=bin_w, binrange=(0, df_hist[stat].max()), shrink=0.95)
-    sns.histplot(data=df_hist, x=stat, fill=False, color="red", stat='count', kde=True, line_kws={"lw":2}, binwidth=bin_w, binrange=(0, df_hist[stat].max()), shrink=0.95)
-    sns.histplot(data=df_hist, x=stat, fill=False, color="k", stat='count', binwidth=bin_w, binrange=(0, df_hist[stat].max()), shrink=0.95)
+    try:
+        sns.histplot(data=df_hist, x=stat, color="gray", stat='count', line_kws={"color":"red"}, binwidth=bin_w, binrange=(0, df_hist[stat].max()), shrink=0.95)
+        sns.histplot(data=df_hist, x=stat, fill=False, color="red", stat='count', kde=True, line_kws={"lw":2}, binwidth=bin_w, binrange=(0, df_hist[stat].max()), shrink=0.95)
+        sns.histplot(data=df_hist, x=stat, fill=False, color="k", stat='count', binwidth=bin_w, binrange=(0, df_hist[stat].max()), shrink=0.95)
+    except ValueError:
+        pass
     
     plt.ylabel("amount of days")
     
@@ -880,8 +884,8 @@ if not df.empty:
     
     # masa odpadow
     df_stats_2 = df_stats.T.cumsum().T
-    fig_p9_2, ax_p9_2 = plt.subplots(1, figsize=(8,5))
-    #fig_p9_2 = wykres_z_tygodnia2(df_stats_2, data_od, ['Masa_smieci'], ['Waste weight [kg]'], zakres_dni=zakres_dni9)
+    #fig_p9_2, ax_p9_2 = plt.subplots(1, figsize=(8,5))
+    fig_p9_2 = wykres_z_tygodnia2(df_stats_2, data_od, ['Waste mass [t] cumulative'], ['Waste mass [t] cumulative'], zakres_dni=zakres_dni9)
     plt.tight_layout()
     
     
