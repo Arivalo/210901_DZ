@@ -901,10 +901,13 @@ if not df.empty:
     
     # delta temp.
     fig_q9_2, ax_q9_2 = plt.subplots(1, figsize=(8,5))
-    plt.plot(df['Data_godzina'], df['temperatura_zewn']- df['temperatura_IN12'], label = 'delta T PIN 1 ', c='b')
-    plt.plot(df['Data_godzina'], df['temperatura_zewn'] - df['temperatura_IN14'], label = 'delta T PIN 2', c='g')
+    plt.plot(df['Data_godzina'], df['temperatura_IN12']-df['temperatura_zewn'], label = 'delta T PIN 1 ', c='b')
+    plt.plot(df['Data_godzina'], df['temperatura_IN14']-df['temperatura_zewn'], label = 'delta T PIN 2', c='g')
     
-    plt.ylabel("Temperature [°C]")
+    plt.axhline(0, ls='--', color='red')
+    plt.ylim((-10, 15))
+    
+    plt.ylabel("Degrees [°C]")
     
     ax_q9_2.xaxis.set_major_formatter(xfmt)
     plt.grid()
