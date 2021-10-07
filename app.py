@@ -885,7 +885,7 @@ if not df.empty:
     # masa odpadow
     #df_stats_2 = df_stats.T.cumsum().T
     #fig_p9_2, ax_p9_2 = plt.subplots(1, figsize=(8,5))
-    fig_p9_2 = wykres_z_tygodnia2(df_stats, data_od, ['Waste mass [t] cumulative'], ['Waste mass [t] cumulative'], zakres_dni=(dt.date(2021,8,16), dt.date.today()))
+    fig_p9_2 = wykres_z_tygodnia2(df_stats, data_od, ['Waste mass [t] cumulative'], ['Waste mass [t] cumulative'], zakres_dni=(df_stats.columns[0], df_stats.columns[1]))
     plt.tight_layout()
     
     
