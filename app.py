@@ -874,9 +874,9 @@ if not df.empty:
     
     exp9 = st.expander("PP joint")
     
-    cols = exp9.columns((2,3,2))
+    #cols = exp9.columns((2,3,2))
     
-    zakres_dni9 = cols[1].slider("Range of days         ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    #zakres_dni9 = cols[1].slider("Range of days         ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
     
     # cykle do zrobienia
     fig_p9_1, ax_p9_1 = plt.subplots(1, figsize=(8,5))
@@ -885,7 +885,7 @@ if not df.empty:
     # masa odpadow
     df_stats_2 = df_stats.T.cumsum().T
     #fig_p9_2, ax_p9_2 = plt.subplots(1, figsize=(8,5))
-    fig_p9_2 = wykres_z_tygodnia2(df_stats_2, data_od, ['Waste mass [t] cumulative'], ['Waste mass [t] cumulative'], zakres_dni=zakres_dni9)
+    fig_p9_2 = wykres_z_tygodnia2(df_stats_2, data_od, ['Waste mass [t] cumulative'], ['Waste mass [t] cumulative'], zakres_dni=(dt.date(2021,8,16), dt.date.today()))
     plt.tight_layout()
     
     
