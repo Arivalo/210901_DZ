@@ -172,7 +172,7 @@ def stworz_tabele_statystyk(df, data):
     
     df_out['total'] = df.sum(axis=1)
     
-    df_out = df_out.fillna(0).round(1)
+    df_out = df_out.fillna(0).astype("float64").round(1)
     
     # usuwanie statystyk gdzie total nie ma sensu
     df_out['total'].T['Fuel consumption per distance [dm3/100km]'] = "-"
@@ -189,8 +189,10 @@ def stworz_tabele_statystyk(df, data):
     distance_total = df_out['selected day'].T['Distance [km]']
     hyd_en_total = df_out['selected day'].T['Hydraulic energy [GJ]']
     
+    
     dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
     
+    #print(dividers)
     percentage_daily = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['selected day'].values, dividers)]
     
     df_out["%"] = percentage_daily
@@ -276,13 +278,13 @@ def wykres_z_tygodnia2(df, data, lista_kolumn, lista_etykiet, title="", zakres_d
         if dzien not in df.columns:
             df[dzien] = 0
     
-    ax.bar(data, df[str(data)].T[lista_kolumn[0]].max()*1.1, width=1, color="yellow", label="Selected day",
-            alpha=0.6)
+    if str(data) in dni_tydzien:
+        ax.bar(data, df[str(data)].T[lista_kolumn[0]].max()*1.1, width=1, color="yellow", label="Selected day", alpha=0.6)
     
     for kolumna, label in zip(lista_kolumn, lista_etykiet):
     
         temp_y = df[dni_tydzien].T[kolumna]
-        ax.bar(dni_tydzien,  temp_y, width=0.67,  label=label)
+        ax.bar(pd.to_datetime(dni_tydzien),  temp_y, width=0.67,  label=label)
           
     ax.legend()
     plt.title(title, fontsize=24)
@@ -454,8 +456,12 @@ def wykres_dystrybucja_v2(df, stat, today_stats=None, mean=True, bin_w=1, fs=(8,
     if mean:
         plt.axvline(df_hist[stat].mean(), label="Daily avg.", color='blue', lw=2.5, ls='--')
         
-    if today_stats is not None:   
-        plt.axvline(today_stats.T[stat], label="Selected day", color='yellow', lw=2.5)
+    if today_stats is not None:
+        #print(today_stats.T[stat].astype("float64"))
+        try:
+            plt.axvline(today_stats.T[stat].astype("float64"), label="Selected day", color='yellow', lw=2.5)
+        except ValueError:
+            plt.axvline(today_stats.T[stat].astype("float64").values[0], label="Selected day", color='yellow', lw=2.5)
         
     if xlabel is not None:
         plt.xlabel(xlabel)
@@ -549,11 +555,16 @@ else:
     
         if not df.empty:
             dane_z_dnia = tabela_statystyk_dnia(df)
+            df_stats[str(data_od)] = dane_z_dnia["Selected day"].astype("float64")
             
     except KeyError:
         dane_z_dnia = df_stats[df_stats.columns[0]].copy().rename({df_stats.columns[0]:"Selected day"})
         dane_z_dnia["Selected day"] = 0
         c1.write("No data for selected day")
+        df_stats[str(data_od)] = 0
+    
+        
+    
 
 #c3.write(f"Statistics from {data_od}")
 #c2.dataframe(dane_z_dnia, height=500)
@@ -855,6 +866,59 @@ if not df.empty:
     cols[0].write(fig_q8)
     cols[1].write(fig_r8)
     
+    # PP JOINT
+    
+    exp9 = st.expander("PP joint")
+    
+    cols = exp9.columns((2,3,2))
+    
+    zakres_dni9 = cols[1].slider("Range of days         ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    
+    # cykle do zrobienia
+    fig_p9_1, ax_p9_1 = plt.subplots(1, figsize=(8,5))
+    plt.tight_layout()
+    
+    # masa odpadow
+    df_stats_2 = df_stats.T.cumsum().T
+    fig_p9_2, ax_p9_2 = plt.subplots(1, figsize=(8,5))
+    #fig_p9_2 = wykres_z_tygodnia2(df_stats_2, data_od, ['Masa_smieci'], ['Waste weight [kg]'], zakres_dni=zakres_dni9)
+    plt.tight_layout()
+    
+    
+    # temperatury
+    fig_q9_1, ax_q9_1 = plt.subplots(1, figsize=(8,5))
+    plt.plot(df['Data_godzina'], df["temperatura_IN12"], label="temperature PIN 1")
+    plt.plot(df['Data_godzina'], df["temperatura_IN14"], label="temperature PIN 2")
+    plt.plot(df['Data_godzina'], df["temperatura_zewn"], label="ambient temperature")
+    
+    plt.ylabel("Temperature [°C]")
+    
+    ax_q9_1.xaxis.set_major_formatter(xfmt)
+    plt.grid()
+    plt.legend()
+    plt.tight_layout()
+    
+    
+    # delta temp.
+    fig_q9_2, ax_q9_2 = plt.subplots(1, figsize=(8,5))
+    plt.plot(df['Data_godzina'], df['temperatura_zewn']- df['temperatura_IN12'], label = 'delta T PIN 1 ', c='b')
+    plt.plot(df['Data_godzina'], df['temperatura_zewn'] - df['temperatura_IN14'], label = 'delta T PIN 2', c='g')
+    
+    plt.ylabel("Temperature [°C]")
+    
+    ax_q9_2.xaxis.set_major_formatter(xfmt)
+    plt.grid()
+    plt.legend()
+    plt.tight_layout()
+    
+    # rysowanie
+    cols = exp9.columns((1,1))
+    cols[0].write(fig_p9_1)
+    cols[0].write(fig_p9_2)
+    cols[1].write(fig_q9_1)
+    cols[1].write(fig_q9_2)
+    
+    #cols[0].write(df)
     
 
     
@@ -876,3 +940,5 @@ tabela_pm = go.Figure(data=[go.Table(header=dict(values=[' ', 'diagnosis'], font
                      ])
 
 column.plotly_chart(tabela_pm, use_container_width=True)
+
+#st.write(df.columns)
