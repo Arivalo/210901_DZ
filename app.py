@@ -273,7 +273,7 @@ def wykres_z_tygodnia2(df, data, lista_kolumn, lista_etykiet, title="", zakres_d
     if zakres_dni is None:
         dni_tydzien = [str(data + dt.timedelta(days=d-data.weekday())) for d in range(7)]
     else:
-        dni_tydzien = [date for date in pd.date_range(zakres_dni[0], zakres_dni[1]).astype(str) if date in df.columns]
+        dni_tydzien = [date for date in pd.date_range(zakres_dni[0], zakres_dni[1]).astype(str)]
     
     for dzien in dni_tydzien:
         if dzien not in df.columns:
@@ -885,15 +885,15 @@ if not df.empty:
     # masa odpadow
     #df_stats_2 = df_stats.T.cumsum().T
     #fig_p9_2, ax_p9_2 = plt.subplots(1, figsize=(8,5))
-    fig_p9_2 = wykres_z_tygodnia2(df_stats, data_od, ['Waste mass [t] cumulative'], ['Waste mass [t] cumulative'], zakres_dni=(df_stats.columns[0], df_stats.columns[1]))
+    fig_p9_2 = wykres_z_tygodnia2(df_stats, data_od, ['Waste mass [t] cumulative'], ['Waste mass [t] cumulative'], zakres_dni=(dt.date(2021,8,16), dt.date.today()))
     plt.tight_layout()
     
     
     # temperatury
     fig_q9_1, ax_q9_1 = plt.subplots(1, figsize=(8,5))
-    plt.plot(df['Data_godzina'], df["temperatura_IN12"], label="temperature PIN 1")
-    plt.plot(df['Data_godzina'], df["temperatura_IN14"], label="temperature PIN 2")
-    plt.plot(df['Data_godzina'], df["temperatura_zewn"], label="ambient temperature")
+    plt.plot(df['Data_godzina'], df["temperatura_IN12"], label="temperature PIN 1", c='b')
+    plt.plot(df['Data_godzina'], df["temperatura_IN14"], label="temperature PIN 2", c='g')
+    plt.plot(df['Data_godzina'], df["temperatura_zewn"], label="ambient temperature",c='orange')
     
     plt.ylabel("Temperature [°C]")
     
