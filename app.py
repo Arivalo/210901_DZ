@@ -181,7 +181,10 @@ def stworz_tabele_statystyk(df, data):
     df_out['total'].T['Body capacity used [%]'] = "-"
     df_out['total'].T['Hydraulic energy per 1 t of waste [GJ/t]'] = "-"
     df_out['total'].T['Compaction hydraulic energy per 1 t of waste [GJ/t]'] = "-"
+    df_out['total'].T['Waste mass x kilometers [t*km]'] = "-"
+    df_out['total'].T['Vehicle overload x kilometers [t*km]'] = "-"
     df_out['total'].T['Average power of hydraulic system during body operation [kW]'] = "-"
+    df_out['total'].T['Waste mass [t] cumulative'] = np.ceil(df.T["Waste mass [t] cumulative"].max())
     
     ## %%
     # daily
@@ -190,7 +193,7 @@ def stworz_tabele_statystyk(df, data):
     hyd_en_total = df_out['selected day'].T['Hydraulic energy [GJ]']
     
     
-    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
     
     #print(dividers)
     percentage_daily = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['selected day'].values, dividers)]
@@ -202,7 +205,7 @@ def stworz_tabele_statystyk(df, data):
     distance_total = df_out['avg. week'].T['Distance [km]']
     hyd_en_total = df_out['avg. week'].T['Hydraulic energy [GJ]']
     
-    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
     
     percentage_weekly = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['avg. week'].values, dividers)]
     
@@ -213,7 +216,7 @@ def stworz_tabele_statystyk(df, data):
     distance_total = df_out['avg. month'].T['Distance [km]']
     hyd_en_total = df_out['avg. month'].T['Hydraulic energy [GJ]']
     
-    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
     
     percentage_monthly = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['avg. month'].values, dividers)]
     
@@ -272,7 +275,7 @@ def wykres_z_tygodnia2(df, data, lista_kolumn, lista_etykiet, title="", zakres_d
     if zakres_dni is None:
         dni_tydzien = [str(data + dt.timedelta(days=d-data.weekday())) for d in range(7)]
     else:
-        dni_tydzien = [date for date in pd.date_range(zakres_dni[0], zakres_dni[1]).astype(str) if date in df.columns]
+        dni_tydzien = [date for date in pd.date_range(zakres_dni[0], zakres_dni[1]).astype(str)]
     
     for dzien in dni_tydzien:
         if dzien not in df.columns:
@@ -445,9 +448,12 @@ def wykres_dystrybucja_v2(df, stat, today_stats=None, mean=True, bin_w=1, fs=(8,
     df_hist = df.T
     df_hist = df_hist[df_hist["Motohours total"] > 0]
     
-    sns.histplot(data=df_hist, x=stat, color="gray", stat='count', line_kws={"color":"red"}, binwidth=bin_w, binrange=(0, df_hist[stat].max()), shrink=0.95)
-    sns.histplot(data=df_hist, x=stat, fill=False, color="red", stat='count', kde=True, line_kws={"lw":2}, binwidth=bin_w, binrange=(0, df_hist[stat].max()), shrink=0.95)
-    sns.histplot(data=df_hist, x=stat, fill=False, color="k", stat='count', binwidth=bin_w, binrange=(0, df_hist[stat].max()), shrink=0.95)
+    try:
+        sns.histplot(data=df_hist, x=stat, color="gray", stat='count', line_kws={"color":"red"}, binwidth=bin_w, binrange=(0, df_hist[stat].max()), shrink=0.95)
+        sns.histplot(data=df_hist, x=stat, fill=False, color="red", stat='count', kde=True, line_kws={"lw":2}, binwidth=bin_w, binrange=(0, df_hist[stat].max()), shrink=0.95)
+        sns.histplot(data=df_hist, x=stat, fill=False, color="k", stat='count', binwidth=bin_w, binrange=(0, df_hist[stat].max()), shrink=0.95)
+    except ValueError:
+        pass
     
     plt.ylabel("amount of days")
     
@@ -614,7 +620,7 @@ if not df.empty:
     
     cols = exp0.columns((2,3,2))
     
-    zakres_dni0 = cols[1].slider("Range of days", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    zakres_dni0 = cols[1].slider("Range of days", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(data_od-dt.timedelta(days=data_od.weekday()), data_od+dt.timedelta(days=6-data_od.weekday())))
     
     cols = exp0.columns((1,1,1))
     
@@ -654,7 +660,7 @@ if not df.empty:
     
     cols = exp1.columns((2,3,2))
     
-    zakres_dni1 = cols[1].slider("Range of days ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    zakres_dni1 = cols[1].slider("Range of days ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(data_od-dt.timedelta(days=data_od.weekday()), data_od+dt.timedelta(days=6-data_od.weekday())))
     
     fig_p1, ax_1 = plt.subplots(1, figsize=(8,5))
     plt.plot(df['Data_godzina'], df['motogodziny_total'], lw=3, label='mth total [h]')
@@ -681,7 +687,7 @@ if not df.empty:
     
     cols = exp2.columns((2,3,2))
     
-    zakres_dni2 = cols[1].slider("Range of days  ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    zakres_dni2 = cols[1].slider("Range of days  ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(data_od-dt.timedelta(days=data_od.weekday()), data_od+dt.timedelta(days=6-data_od.weekday())))
     
     fig_p2, ax_2 = plt.subplots(1, figsize=(8,5))
     plt.plot(df['Data_godzina'], df['przebieg_km'], lw=3, label='Total distance [km]')
@@ -707,7 +713,7 @@ if not df.empty:
     
     cols = exp3.columns((2,3,2))
     
-    zakres_dni3 = cols[1].slider("Range of days   ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    zakres_dni3 = cols[1].slider("Range of days   ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(data_od-dt.timedelta(days=data_od.weekday()), data_od+dt.timedelta(days=6-data_od.weekday())))
     
     fig_s0, ax_s0 = plt.subplots(1, figsize=(8,5))
     plt.plot(df[df['RPM'] > 800]['Data_godzina'], df[df['RPM'] > 800]['Nacisk_total'], lw=3, label='mth total [h]')
@@ -737,7 +743,7 @@ if not df.empty:
     
     cols = exp4.columns((2,3,2))
     
-    zakres_dni4 = cols[1].slider("Range of days    ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    zakres_dni4 = cols[1].slider("Range of days    ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(data_od-dt.timedelta(days=data_od.weekday()), data_od+dt.timedelta(days=6-data_od.weekday())))
     
     fig_p4, ax_p4 = plt.subplots(1, figsize=(8,5))
     plt.plot(df['Data_godzina'], df['ilosc_przepompowanego_oleju'], lw=3, label='hydraulic oil pumped [m3]')
@@ -766,7 +772,7 @@ if not df.empty:
     
     cols = exp5.columns((2,3,2))
     
-    zakres_dni5 = cols[1].slider("Range of days     ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    zakres_dni5 = cols[1].slider("Range of days     ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(data_od-dt.timedelta(days=data_od.weekday()), data_od+dt.timedelta(days=6-data_od.weekday())))
     
     fig_p5, ax_p5 = plt.subplots(1, figsize=(8,5))
     plt.plot(df['Data_godzina'], df['Tonokilometry_masa_smieci'], lw=3, label='Waste mass x kilometers [t*km]')
@@ -798,7 +804,7 @@ if not df.empty:
     
     cols = exp6.columns((2,3,2))
     
-    zakres_dni6 = cols[1].slider("Range of days      ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    zakres_dni6 = cols[1].slider("Range of days      ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(data_od-dt.timedelta(days=data_od.weekday()), data_od+dt.timedelta(days=6-data_od.weekday())))
     
     fig_p6, ax_p6 = plt.subplots(1, figsize=(8,5))
     plt.plot(df2['Data_godzina'], df2['zapelnienie_skrzyni_procent'], lw=3, label='Body capacity used [%]')
@@ -826,7 +832,7 @@ if not df.empty:
     
     cols = exp7.columns((2,3,2))
     
-    zakres_dni7 = cols[1].slider("Range of days       ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    zakres_dni7 = cols[1].slider("Range of days       ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(data_od-dt.timedelta(days=data_od.weekday()), data_od+dt.timedelta(days=6-data_od.weekday())))
     
     fig_p7, ax_p7 = plt.subplots(1, figsize=(8,5))
     plt.plot(df2['Data_godzina'], df2['hydraulic_energy'] / (df2['Masa_smieci']/1000)/1000, lw=3, label='Hydraulic energy per ton of waste')
@@ -853,7 +859,7 @@ if not df.empty:
     
     cols = exp8.columns((2,3,2))
     
-    zakres_dni8 = cols[1].slider("Range of days        ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    zakres_dni8 = cols[1].slider("Range of days        ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(data_od-dt.timedelta(days=data_od.weekday()), data_od+dt.timedelta(days=6-data_od.weekday())))
     
     fig_q8 = wykres_z_tygodnia2(df_stats, data_od, ['Average power of hydraulic system during body operation [kW]'], ['Average power of hydraulic system during body operation [kW]'], zakres_dni=zakres_dni8)
     plt.legend()
@@ -870,26 +876,26 @@ if not df.empty:
     
     exp9 = st.expander("PP joint")
     
-    cols = exp9.columns((2,3,2))
+    #cols = exp9.columns((2,3,2))
     
-    zakres_dni9 = cols[1].slider("Range of days         ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    #zakres_dni9 = cols[1].slider("Range of days         ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
     
     # cykle do zrobienia
     fig_p9_1, ax_p9_1 = plt.subplots(1, figsize=(8,5))
     plt.tight_layout()
     
     # masa odpadow
-    df_stats_2 = df_stats.T.cumsum().T
-    fig_p9_2, ax_p9_2 = plt.subplots(1, figsize=(8,5))
-    #fig_p9_2 = wykres_z_tygodnia2(df_stats_2, data_od, ['Masa_smieci'], ['Waste weight [kg]'], zakres_dni=zakres_dni9)
+    #df_stats_2 = df_stats.T.cumsum().T
+    #fig_p9_2, ax_p9_2 = plt.subplots(1, figsize=(8,5))
+    fig_p9_2 = wykres_z_tygodnia2(df_stats, data_od, ['Waste mass [t] cumulative'], ['Waste mass [t] cumulative'], zakres_dni=(dt.date(2021,8,16), dt.date.today()))
     plt.tight_layout()
     
     
     # temperatury
     fig_q9_1, ax_q9_1 = plt.subplots(1, figsize=(8,5))
-    plt.plot(df['Data_godzina'], df["temperatura_IN12"], label="temperature PIN 1")
-    plt.plot(df['Data_godzina'], df["temperatura_IN14"], label="temperature PIN 2")
-    plt.plot(df['Data_godzina'], df["temperatura_zewn"], label="ambient temperature")
+    plt.plot(df['Data_godzina'], df["temperatura_IN12"], label="temperature PIN 1", c='b')
+    plt.plot(df['Data_godzina'], df["temperatura_IN14"], label="temperature PIN 2", c='g')
+    plt.plot(df['Data_godzina'], df["temperatura_zewn"], label="ambient temperature",c='orange')
     
     plt.ylabel("Temperature [°C]")
     
