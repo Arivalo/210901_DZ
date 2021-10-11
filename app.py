@@ -181,6 +181,8 @@ def stworz_tabele_statystyk(df, data):
     df_out['total'].T['Body capacity used [%]'] = "-"
     df_out['total'].T['Hydraulic energy per 1 t of waste [GJ/t]'] = "-"
     df_out['total'].T['Compaction hydraulic energy per 1 t of waste [GJ/t]'] = "-"
+    df_out['total'].T['Waste mass x kilometers [t*km]'] = "-"
+    df_out['total'].T['Vehicle overload x kilometers [t*km]'] = "-"
     df_out['total'].T['Average power of hydraulic system during body operation [kW]'] = "-"
     df_out['total'].T['Waste mass [t] cumulative'] = np.ceil(df.T["Waste mass [t] cumulative"].max())
     
