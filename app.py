@@ -618,7 +618,7 @@ if not df.empty:
     
     cols = exp0.columns((2,3,2))
     
-    zakres_dni0 = cols[1].slider("Range of days", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    zakres_dni0 = cols[1].slider("Range of days", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(data_od-dt.timedelta(days=data_od.weekday()), data_od+dt.timedelta(days=6-data_od.weekday())))
     
     cols = exp0.columns((1,1,1))
     
