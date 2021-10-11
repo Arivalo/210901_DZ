@@ -241,6 +241,11 @@ def stworz_tabele_statystyk(df, data):
     # df_out.loc['Leakage cylinder detection'] = "-"
     # df_out.loc['Time with oil over 60°C [h]'] = "-"
     
+    # usunięcie 4 ostatnich rzędów
+    df_out = df_out.iloc[:-5]
+    
+    
+    
     df_out = df_out[['selected day', '%', 'avg. week', '% ', 'avg. month', ' %', 'total']]
     
     return df_out.astype(str)
@@ -879,18 +884,14 @@ if not df.empty:
     
     zakres_dni8 = cols[1].slider("Range of days        ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(data_od-dt.timedelta(days=data_od.weekday()), data_od+dt.timedelta(days=6-data_od.weekday())))
     
-    fig_q8 = wykres_z_tygodnia2(df_stats, data_od, ['Average power of hydraulic system during body operation [kW]'], ['Average power of hydraulic system during body operation [kW]'], zakres_dni=zakres_dni8, fs=(6,3))
-    plt.legend(fontsize=7)
-    plt.ylabel('Avg. pow. of hyd. during body operation [kW]', fontsize=8)
+    fig_q8 = wykres_z_tygodnia2(df_stats, data_od, ['Average power of hydraulic system during body operation [kW]'], ['Average power of hydraulic system during body operation [kW]'], zakres_dni=zakres_dni8, fs=(10,5))
+    plt.legend()
+    plt.ylabel('Avg. pow. of hyd. during body operation [kW]', fontsize=11)
     plt.tight_layout()
-    plt.xticks(fontsize=7)
-    plt.yticks(fontsize=7)
     
-    fig_r8 = wykres_dystrybucja_v2(df_stats, "Average power of hydraulic system during body operation [kW]", today_stats=dane_z_dnia, bin_w=1, fs=(6,3))
-    plt.xlabel('Avg. pow. of hyd. during body operation [kW]', fontsize=8)
-    plt.legend(fontsize=7)
-    plt.xticks(fontsize=7)
-    plt.yticks(fontsize=7)
+    fig_r8 = wykres_dystrybucja_v2(df_stats, "Average power of hydraulic system during body operation [kW]", today_stats=dane_z_dnia, bin_w=1, fs=(10,5))
+    plt.xlabel('Avg. pow. of hyd. during body operation [kW]', fontsize=11)
+    plt.legend()
     
     cols = exp8.columns((1,1))
     cols[0].write(fig_q8)
@@ -906,24 +907,20 @@ if not df.empty:
     
     # cykle do zrobienia
     # fig_p9_1, ax_p9_1 = plt.subplots(1, figsize=(6,3))
-    fig_p9_1 = wykres_z_tygodnia(df_stats, data_od, ["Total # of press cycles high forces cumulative", "Total # of press cycles medium forces cumulative", 'Total # of press cycles low forces cumulative'], ["Total # of press cycles high forces cumulative", "Total # of press cycles medium forces cumulative", 'Total # of press cycles low forces cumulative'], zakres_dni=(dt.date(2021,8,16), dt.date.today()), fs=(6,3))
-    plt.legend(fontsize=7)
-    plt.xticks(fontsize=6)
-    plt.yticks(fontsize=7)
+    fig_p9_1 = wykres_z_tygodnia(df_stats, data_od, ["Total # of press cycles high forces cumulative", "Total # of press cycles medium forces cumulative", 'Total # of press cycles low forces cumulative'], ["Total # of press cycles high forces cumulative", "Total # of press cycles medium forces cumulative", 'Total # of press cycles low forces cumulative'], zakres_dni=(dt.date(2021,8,16), dt.date.today()), fs=(10,5))
+    plt.legend()
     plt.tight_layout()
     
     # masa odpadow
     #df_stats_2 = df_stats.T.cumsum().T
     #fig_p9_2, ax_p9_2 = plt.subplots(1, figsize=(8,5))
-    fig_p9_2 = wykres_z_tygodnia2(df_stats, data_od, ['Waste mass [t] cumulative'], ['Waste mass [t] cumulative'], fs=(6,3), zakres_dni=(dt.date(2021,8,16), dt.date.today()))
-    plt.legend(fontsize=7)
-    plt.xticks(fontsize=6)
-    plt.yticks(fontsize=7)
+    fig_p9_2 = wykres_z_tygodnia2(df_stats, data_od, ['Waste mass [t] cumulative'], ['Waste mass [t] cumulative'], fs=(10,5), zakres_dni=(dt.date(2021,8,16), dt.date.today()))
+    plt.legend()
     plt.tight_layout()
     
     
     # temperatury
-    fig_q9_1, ax_q9_1 = plt.subplots(1, figsize=(6,3))
+    fig_q9_1, ax_q9_1 = plt.subplots(1, figsize=(10,5))
     plt.plot(df['Data_godzina'], df["temperatura_IN12"], label="temperature PIN 1", c='b')
     plt.plot(df['Data_godzina'], df["temperatura_IN14"], label="temperature PIN 2", c='g')
     plt.plot(df['Data_godzina'], df["temperatura_zewn"], label="ambient temperature",c='orange')
@@ -932,14 +929,12 @@ if not df.empty:
     
     ax_q9_1.xaxis.set_major_formatter(xfmt)
     plt.grid()
-    plt.legend(fontsize=7)
-    plt.xticks(fontsize=7)
-    plt.yticks(fontsize=7)
+    plt.legend()
     plt.tight_layout()
     
     
     # delta temp.
-    fig_q9_2, ax_q9_2 = plt.subplots(1, figsize=(6,3))
+    fig_q9_2, ax_q9_2 = plt.subplots(1, figsize=(10,5))
     plt.plot(df['Data_godzina'], df['temperatura_IN12']-df['temperatura_zewn'], label = 'delta T PIN 1 ', c='b')
     plt.plot(df['Data_godzina'], df['temperatura_IN14']-df['temperatura_zewn'], label = 'delta T PIN 2', c='g')
     
@@ -950,9 +945,9 @@ if not df.empty:
     
     ax_q9_2.xaxis.set_major_formatter(xfmt)
     plt.grid()
-    plt.legend(fontsize=7)
-    plt.xticks(fontsize=7)
-    plt.yticks(fontsize=7)
+    plt.legend()
+    # plt.xticks(fontsize=7)
+    # plt.yticks(fontsize=7)
     plt.tight_layout()
     
     # rysowanie
