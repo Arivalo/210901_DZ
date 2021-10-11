@@ -658,7 +658,7 @@ if not df.empty:
     
     cols = exp1.columns((2,3,2))
     
-    zakres_dni1 = cols[1].slider("Range of days ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    zakres_dni1 = cols[1].slider("Range of days ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(data_od-dt.timedelta(days=data_od.weekday()), data_od+dt.timedelta(days=6-data_od.weekday())))
     
     fig_p1, ax_1 = plt.subplots(1, figsize=(8,5))
     plt.plot(df['Data_godzina'], df['motogodziny_total'], lw=3, label='mth total [h]')
@@ -685,7 +685,7 @@ if not df.empty:
     
     cols = exp2.columns((2,3,2))
     
-    zakres_dni2 = cols[1].slider("Range of days  ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    zakres_dni2 = cols[1].slider("Range of days  ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(data_od-dt.timedelta(days=data_od.weekday()), data_od+dt.timedelta(days=6-data_od.weekday())))
     
     fig_p2, ax_2 = plt.subplots(1, figsize=(8,5))
     plt.plot(df['Data_godzina'], df['przebieg_km'], lw=3, label='Total distance [km]')
@@ -711,7 +711,7 @@ if not df.empty:
     
     cols = exp3.columns((2,3,2))
     
-    zakres_dni3 = cols[1].slider("Range of days   ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    zakres_dni3 = cols[1].slider("Range of days   ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(data_od-dt.timedelta(days=data_od.weekday()), data_od+dt.timedelta(days=6-data_od.weekday())))
     
     fig_s0, ax_s0 = plt.subplots(1, figsize=(8,5))
     plt.plot(df[df['RPM'] > 800]['Data_godzina'], df[df['RPM'] > 800]['Nacisk_total'], lw=3, label='mth total [h]')
@@ -741,7 +741,7 @@ if not df.empty:
     
     cols = exp4.columns((2,3,2))
     
-    zakres_dni4 = cols[1].slider("Range of days    ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    zakres_dni4 = cols[1].slider("Range of days    ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(data_od-dt.timedelta(days=data_od.weekday()), data_od+dt.timedelta(days=6-data_od.weekday())))
     
     fig_p4, ax_p4 = plt.subplots(1, figsize=(8,5))
     plt.plot(df['Data_godzina'], df['ilosc_przepompowanego_oleju'], lw=3, label='hydraulic oil pumped [m3]')
@@ -770,7 +770,7 @@ if not df.empty:
     
     cols = exp5.columns((2,3,2))
     
-    zakres_dni5 = cols[1].slider("Range of days     ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    zakres_dni5 = cols[1].slider("Range of days     ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(data_od-dt.timedelta(days=data_od.weekday()), data_od+dt.timedelta(days=6-data_od.weekday())))
     
     fig_p5, ax_p5 = plt.subplots(1, figsize=(8,5))
     plt.plot(df['Data_godzina'], df['Tonokilometry_masa_smieci'], lw=3, label='Waste mass x kilometers [t*km]')
@@ -802,7 +802,7 @@ if not df.empty:
     
     cols = exp6.columns((2,3,2))
     
-    zakres_dni6 = cols[1].slider("Range of days      ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    zakres_dni6 = cols[1].slider("Range of days      ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(data_od-dt.timedelta(days=data_od.weekday()), data_od+dt.timedelta(days=6-data_od.weekday())))
     
     fig_p6, ax_p6 = plt.subplots(1, figsize=(8,5))
     plt.plot(df2['Data_godzina'], df2['zapelnienie_skrzyni_procent'], lw=3, label='Body capacity used [%]')
@@ -830,7 +830,7 @@ if not df.empty:
     
     cols = exp7.columns((2,3,2))
     
-    zakres_dni7 = cols[1].slider("Range of days       ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    zakres_dni7 = cols[1].slider("Range of days       ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(data_od-dt.timedelta(days=data_od.weekday()), data_od+dt.timedelta(days=6-data_od.weekday())))
     
     fig_p7, ax_p7 = plt.subplots(1, figsize=(8,5))
     plt.plot(df2['Data_godzina'], df2['hydraulic_energy'] / (df2['Masa_smieci']/1000)/1000, lw=3, label='Hydraulic energy per ton of waste')
@@ -857,7 +857,7 @@ if not df.empty:
     
     cols = exp8.columns((2,3,2))
     
-    zakres_dni8 = cols[1].slider("Range of days        ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
+    zakres_dni8 = cols[1].slider("Range of days        ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(data_od-dt.timedelta(days=data_od.weekday()), data_od+dt.timedelta(days=6-data_od.weekday())))
     
     fig_q8 = wykres_z_tygodnia2(df_stats, data_od, ['Average power of hydraulic system during body operation [kW]'], ['Average power of hydraulic system during body operation [kW]'], zakres_dni=zakres_dni8)
     plt.legend()
