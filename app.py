@@ -399,7 +399,7 @@ def tabela_statystyk_wyswietl(df):
     ])
     
     
-    fig.update_layout(height=1450)
+    fig.update_layout(height=1350)
     
     return fig
 
