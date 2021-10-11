@@ -2,3 +2,4 @@ plotly
 matplotlib
 scipy
 seaborn
+tslearn
