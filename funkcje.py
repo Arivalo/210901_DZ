@@ -953,7 +953,7 @@ def przygotuj_dane(df):
 
     df['cluster_cyklu_prasowania'] = grupowanie_przejazdow2(df, kolumna_podzialu='cykle_zageszczania', kolumna_danych='cisnienie', kolumna_czas='Data_godzina',
                            metric="dtw", ilosc_grup=8,
-                           load=True, load_loc='C:/Users/d07321ow/Google Drive/GUT/PM_v1/smieciarki/KMeans_cykle_21-09do24-09.json')
+                           load=True, load_loc='dane/misc/KMeans_cykle_21-09do24-09.json')
 
 
     df['cykl_zageszczania_100'] = znajdz_cykle_zageszczania(df['cisnienie_bar'], cisnienie_min=100)
