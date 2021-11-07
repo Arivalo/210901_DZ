@@ -98,6 +98,12 @@ def tabela_statystyk_dnia(df):
     # srednia moc ukladu hydraulicznego w czasie pracy zabudowy (rpm=900)
     dane_dnia['Average power of hydraulic system during body operation [kW]'] = df.loc[(df['RPM']>800) & (df['predkosc_kol']<2),'hydrualic_power'].mean()
     
+    # liczba cykli prasy
+    dane_dnia['Total # of press cycles'] = df['cykle_zageszczania'].max()
+    dane_dnia['Total # of press cycles - low forces'] = df.loc[df['cykle_lekkie'] == 1,'cykle_zageszczania'].nunique()
+    dane_dnia['Total # of press cycles - medium forces'] = df.loc[df['cykle_srednie'] == 1,'cykle_zageszczania'].nunique()
+    dane_dnia['Total # of press cycles - high forces'] = df.loc[df['cykle_ciezkie'] == 1,'cykle_zageszczania'].nunique()
+
 
     dane_dnia = dane_dnia.T.rename(columns={0:"Selected day"})
     #dane_dnia.columns = dane_dnia.iloc[0]

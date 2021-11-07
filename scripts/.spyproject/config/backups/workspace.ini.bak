@@ -3,8 +3,10 @@ restore_data_on_startup = True
 save_data_on_exit = True
 save_history = True
 save_non_project_files = False
+project_type = empty-project-type
+recent_files = ['import_danych_z_dni.py', 'przelicz_podsumowanie_dnia.py', 'przelicz_podsumowanie_wszystkich_dni.py', 'przelicz_okna_czasowe.py', 'sprawdz_wyladunki.py', 'sprawdz_temp_sworzni.py']
 
 [main]
 version = 0.2.0
-recent_files = ['import_danych_z_dni.py', 'przelicz_podsumowanie_dnia.py', 'przelicz_okna_czasowe.py', 'przelicz_podsumowanie_wszystkich_dni.py', 'sprawdz_wyladunki.py']
+recent_files = []
 

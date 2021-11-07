@@ -25,7 +25,7 @@ from os.path import isfile, join
 
 # %% PARAMETRY
 
-okno_czasowe = 60 # min
+okno_czasowe = 45 # min
 vehicle_id = '20269'
 
 path_to_vehicle_data =r'C:\Users\d07321ow\Google Drive\GUT\Zoeller\pomiary_na_smieciarce\data_smieciarki' + '\\' + vehicle_id
@@ -85,14 +85,32 @@ kolumny_deltas = ['temperatura_IN12', 'temperatura_IN14',
                   'hydraulic_energy', 
                   'energia_hydr_zageszczania',
                   'Masa_smieci', 
-                  'cykle_zageszczania_100',
-        'cykle_zageszczania_150',
-        'cykle_zageszczania_200',
+                  #'cykle_zageszczania_100',
+        #'cykle_zageszczania_150',
+        #'cykle_zageszczania_200',
                   
                   
                  ]
 
 df_deltas = df_deltas[kolumny_deltas]
+
+cykle_lekkie = []
+cykle_srednie = []
+cykle_ciezkie = []
+for name, group in df.groupby('Data_godzina_rounded'):
+    
+    liczba_cykli_lekkich = group.loc[group['cykle_lekkie']==1, 'cykle_zageszczania'].nunique()
+    liczba_cykli_srednich =group.loc[group['cykle_srednie']==1, 'cykle_zageszczania'].nunique()
+    liczba_cykli_ciezkich = group.loc[group['cykle_ciezkie']==1, 'cykle_zageszczania'].nunique()
+
+    cykle_lekkie.append(liczba_cykli_lekkich)
+    cykle_srednie.append(liczba_cykli_ciezkich)
+    cykle_ciezkie.append(liczba_cykli_ciezkich)
+    
+    
+df_deltas['cykle_lekkie'] = cykle_lekkie
+df_deltas['cykle_srednie'] = cykle_srednie
+df_deltas['cykle_ciezkie'] = cykle_ciezkie
 
 
 # %% Wspolczynniki wzg okna czasowego

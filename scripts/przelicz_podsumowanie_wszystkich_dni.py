@@ -51,7 +51,10 @@ for plik in podsumowanie_files:
     
     summary['Waste mass [t] cumulative'] = summary['Waste mass [t]'].cumsum()
     
-    
+    summary['Total # of press cycles cumulative'] = summary['Total # of press cycles'].cumsum()
+    summary['Total # of press cycles low forces cumulative'] = summary['Total # of press cycles - low forces'].cumsum()
+    summary['Total # of press cycles medium forces cumulative'] = summary['Total # of press cycles - medium forces'].cumsum()
+    summary['Total # of press cycles high forces cumulative'] = summary['Total # of press cycles - high forces'].cumsum()
     
     
 
