@@ -4,7 +4,8 @@ import pandas as pd
 import os
 from scipy.signal import find_peaks
 
-
+from tslearn.utils import to_time_series_dataset
+from tslearn.clustering import TimeSeriesKMeans
 
 
 def przelicz_polozenie_sciany(series, series_rpm):
@@ -95,11 +96,12 @@ def przelicz_ilosc_oleju(series_cisnienie_bar, series_rpm, cisnienie_min=0, r_pt
 
     # wyzeruj wiersze gdzie cisnienie jest mniejsze niz cisnienie_min
     index_ = p > cisnienie_min
-    series_rpm[~index_] = 0
+    series_rpm_temp = series_rpm.copy()
+    series_rpm_temp[~index_] = 0
 
     pump_displacement_dm3 = pump_displacement / 1000 # dm3 per 1 rev
 
-    oil_flow = series_rpm * r_pto * pump_displacement_dm3 # dm3 / min
+    oil_flow = series_rpm_temp * r_pto * pump_displacement_dm3 # dm3 / min
     oil_flow_m3s = oil_flow / 60 / 1000 # m3 / s
 
     oil_flow_cumulative = oil_flow_m3s.cumsum().round(2) # m3
@@ -590,6 +592,45 @@ def oblicz_zuzycie_paliwa(zuzyte_paliwo_total, przebieg, motogodziny):
 
     return godzinowe_zuzycie_paliwa, przebiegowe_zuzycie_paliwa
 
+def znajdz_cykle_zageszczania2(control_signal, dt_series, offset_start=-2, offset_end=12):
+    '''
+    Na podstawie sygnalu sterujacego znajduje krawedz typu "rising" (kolejna wartosc jest wieksza od poprzedniej),
+    nastepnie wyznacza okresy czasu wg. offset_start i offset_end i tworzy cykle czasu z ktorych zwraca serię
+    z nr cykli odpowiadającemu danemu wierszowi, dla pozostałych danych nr cyklu rowny -1
+
+    Input
+    -----
+    control_signal, <list type>
+    dane sterowania do znajdywania cykli, najlepiej w formie 0 i 1 gdzie przeskok 0->1 bedzie wykrywany jako cykl
+
+    dt_series, <pd.Series>
+    dane data czas wg. ktorych zostana podzielone cykle
+
+    offset_start, <number> (default: -2)
+    przesuniecie poczatku cyklu w sekundach
+
+    offset_end, <number> (default: 12)
+    przesuniecie konca cyklu w sekundach
+
+    Output
+    ------
+    series_out, <pd.Series>
+    podzielona na cykle seria danych
+    '''
+
+    series_out = control_signal.copy()
+    series_out.loc[:] = -1
+
+    for i, id in enumerate(control_signal[control_signal.diff() > 0].index):
+        time_now = dt_series[id]
+        time_start = time_now + pd.Timedelta(seconds=offset_start)
+        time_end = time_now + pd.Timedelta(seconds=offset_end)
+
+        series_out.loc[dt_series[dt_series > time_start][dt_series < time_end].index] = i
+
+
+    return series_out
+
 
 def znajdz_cykle_zageszczania(series_cisnienie, cisnienie_min=120):
     '''
@@ -622,6 +663,125 @@ def przelicz_cykle_zageszczania_w_dniu(cykl_prasowania_series):
 
     return cykle_cumsum
 
+
+def grupowanie_przejazdow2(df, kolumna_podzialu='cykl', kolumna_danych='cisnienie', kolumna_czas='Data_godzina',
+                           metric="dtw", ilosc_grup=8,
+                           load=False, load_loc=None, save=False, save_loc=".", savename="TSKM"):
+    '''
+    Grupuje przejazdy na podstawie kolumny podzialu i kolumny danych uzywajac klasyfikatora Kmeans
+
+    *************
+    In:
+
+     df <pandas.DataFrame> - dane
+     kolumna_podzialu <String> - (default: 'cykl') kolumna wg ktorej zostana podzielone przejazdy
+     kolumna_danych <String> - (default: 'cisnienie') kolumna z danymi ktore zostana podane do klasyfikatora
+     metric <String> - (default:"dtw") kernel KMeans, mozliwe opcje {“euclidean”, “dtw”, “softdtw”} wiecej w dokumentacji
+                         tslearn.clustering.TimeSeriesKMeans
+
+     ilosc_grup <int> - (default: 8) ilosc grup wg ktorych bedzie grupowal klasyfikator
+
+     okno_czas <int> - (default: 50) badany czas dla kazdego przejazdu w sekundach
+
+     load <boolean> - (default: False) decyduje o tym czy klasyfikator bedzie wczytany z lokalizacji load_loc czy trenowany na podstawie danych
+     load_loc <string> - (default: None) lokalizacja klasyfikatora z ktorej bedzie wczytany jesli load = True
+
+     save <boolean> - (default: False) decyduje o tym klasyfikator zostanie zapisany
+     save_loc <string> - (default: ".") lokalizacja zapisanego klasyfikatora jesli save = True
+     savename <string> - (default: "TSKM") nazwa zapisanego klasyfikatora
+
+    Out:
+
+     <pandas.DataFrame> - Dataframe z danymi i kolumna "grupa"
+     <tslearn.clustering.TimeSeriesKMeans> - KMeans ktory byl wykorzystany do klasyfikacji, pozwala np. na wyciagniecie centrow grup
+
+    '''
+
+    X_data = []
+    y_keys = []
+    km = TimeSeriesKMeans(n_clusters=ilosc_grup, verbose=False, metric=metric)
+
+    df_temp = df[df[kolumna_podzialu] >= 0]
+
+    for i in df_temp[kolumna_podzialu].unique():
+        if len(df[df[kolumna_podzialu] == i][kolumna_danych].values) > 1:
+            temp = df[df[kolumna_podzialu] == i]
+            dt_time = temp[kolumna_czas].dt.to_pydatetime()
+            temp_dt = [(x - dt_time[0]).total_seconds() for x in dt_time]
+            y_keys.append(i)
+            X_data.append(list(zip(temp_dt,
+                                   temp[kolumna_danych].values)))
+
+    X_data = to_time_series_dataset(X_data)
+
+    if load and load_loc is not None:
+        km = TimeSeriesKMeans.from_json(load_loc)
+        y_pred = km.predict(X_data)
+
+    else:
+        y_pred = km.fit_predict(X_data)
+
+    if save and save_loc is not None:
+        km.to_json(save_loc + "/" + savename + ".json")
+
+    slownik_mapowania = {}
+
+    for nr_prz, klasa in zip(y_keys, y_pred):
+        slownik_mapowania[nr_prz] = klasa
+
+    series = df[kolumna_podzialu].map(slownik_mapowania)
+
+    return series
+
+def przypisz_ocene_cyklu(series_nr_clustra_cyklu):
+
+
+    cykle_lekkie_obciazenie = series_nr_clustra_cyklu*0
+    cykle_srednie_obciazenie = series_nr_clustra_cyklu * 0
+    cykle_duze_obciazenie = series_nr_clustra_cyklu * 0
+
+    nr_clastow_lekkie_obc = [4]
+    nr_clastow_srednie_obc = [0,5]
+    nr_clastow_duze_obc = [1,2,3,6,7]
+
+
+
+    cykle_lekkie_obciazenie.loc[series_nr_clustra_cyklu.isin(nr_clastow_lekkie_obc)] = 1
+
+    cykle_srednie_obciazenie.loc[series_nr_clustra_cyklu.isin(nr_clastow_srednie_obc)] = 1
+
+    cykle_duze_obciazenie.loc[series_nr_clustra_cyklu.isin(nr_clastow_duze_obc)] = 1
+
+    return cykle_lekkie_obciazenie, cykle_srednie_obciazenie, cykle_duze_obciazenie
+
+
+
+def dane_ruch_zgarniaka_i_suwaka(df_Series, kolumny=['podnoszenie_suwaka', 'opuszczanie_suwaka', 'zamykanie_zgarniaka', 'otwieranie_zgarniaka']):
+    '''
+    Przerabia dane liczbowe na stany okreslajace poszczegolne ruchy suwaka i zgarniaka
+
+    Parametry
+    ---------
+    df_Series: pandas.Series
+    Kolumna zawierajaca okreslona ramke danych (203)
+
+    kolumny: lista
+    Kolumna z nazwami kolumn w kolejnosci bitow
+    default: ['podnoszenie_suwaka', 'opuszczanie_suwaka', 'zamykanie_zgarniaka', 'otwieranie_zgarniaka']
+
+    Zwraca
+    ------
+    pandas.DataFrame
+    Tabela z danymi o stanach 0 i 1
+
+    Przyklad
+    --------
+    dane_suwak_zgarniak =  dane_ruch_zgarniaka_i_suwaka(df['ruch_zgarniaka_i_suwaka'])
+    '''
+    # zamiana liczb na listy wartosci binarnych np. 64+7 -> [0, 1, 1, 1] gdzie 64 usuwane przez modulo 16
+    dane_binarne = df_Series.astype('int').apply(lambda x: [int(x) for x in bin(x%16)[2:].zfill(4)])
+
+    return pd.DataFrame.from_records(dane_binarne, columns=kolumny)
 
 
 def przygotuj_dane(df):
@@ -723,6 +883,7 @@ def przygotuj_dane(df):
     df = df.reset_index().merge(new_index, on='sekundy', how='right').fillna(method='ffill')
     df['Data_godzina'] = df['Data_godzina'][0] + pd.to_timedelta(new_index['sekundy'], unit='s')
     df = df.dropna(subset=['Data_godzina'])
+
     # Cisnienie
     df['cisnienie_bar'] = przelicz_cisnienie_bar(df['cisnienie'])
 
@@ -740,7 +901,7 @@ def przygotuj_dane(df):
     # Bypass
     df[['wysuwanie_sciany','bypass_1']] = dane_bypass_wysuwanie_sciany(df['bypass1_1'], kolumny=['wysuwanie_sciany', 'bypass_1'])
 
-
+    df[['podnoszenie_suwaka', 'opuszczanie_suwaka', 'zamykanie_zgarniaka', 'otwieranie_zgarniaka']] = dane_ruch_zgarniaka_i_suwaka(df['ruch_zgarniaka_i_suwaka'], kolumny=['podnoszenie_suwaka', 'opuszczanie_suwaka', 'zamykanie_zgarniaka', 'otwieranie_zgarniaka'])
 
     # Przebieg
     df['distance_m'], df['przebieg_km'] = przelicz_przebieg(df['predkosc_kol'])
@@ -783,6 +944,18 @@ def przygotuj_dane(df):
     df['Tonokilometry_przeladowane'] = oblicz_tonokilometry_przeladowane(df['Nacisk_total'], df['distance_m'], nacisk_min=26000)
 
     # Cykle robocze
+
+    df['cykle_zageszczania'] = znajdz_cykle_zageszczania2(df['podnoszenie_suwaka'], df['Data_godzina'], offset_start=-2, offset_end=12)
+    df['cykle_zageszczania_wg_zamykanie_zgarniaka'] = znajdz_cykle_zageszczania2(df['zamykanie_zgarniaka'], df['Data_godzina'], offset_start=-2,
+                                                          offset_end=12)
+    df['cykle_zageszczania_wg_opuszczanie_suwaka'] = znajdz_cykle_zageszczania2(df['opuszczanie_suwaka'], df['Data_godzina'], offset_start=-2,
+                                                          offset_end=12)
+
+    df['cluster_cyklu_prasowania'] = grupowanie_przejazdow2(df, kolumna_podzialu='cykle_zageszczania', kolumna_danych='cisnienie', kolumna_czas='Data_godzina',
+                           metric="dtw", ilosc_grup=8,
+                           load=True, load_loc='data/misc/KMeans_cykle_21-09do24-09.json')
+
+
     df['cykl_zageszczania_100'] = znajdz_cykle_zageszczania(df['cisnienie_bar'], cisnienie_min=100)
     df['cykle_zageszczania_100'] = przelicz_cykle_zageszczania_w_dniu(df['cykl_zageszczania_100'])
 
@@ -791,6 +964,9 @@ def przygotuj_dane(df):
 
     df['cykl_zageszczania_200'] = znajdz_cykle_zageszczania(df['cisnienie_bar'], cisnienie_min=200)
     df['cykle_zageszczania_200'] = przelicz_cykle_zageszczania_w_dniu(df['cykl_zageszczania_200'])
+
+    df['cykle_lekkie'], df['cykle_srednie'], df['cykle_ciezkie'] = przypisz_ocene_cyklu(df['cluster_cyklu_prasowania'])
+
 
     # Ilosc przepompowanego oleju
     df['wydatek_oleju_chwilowy'], df['ilosc_przepompowanego_oleju'] = przelicz_ilosc_oleju(df['cisnienie_bar'], df['RPM'], cisnienie_min=0, r_pto = 1.19, pump_displacement = 69)

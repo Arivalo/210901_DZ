@@ -185,15 +185,23 @@ def stworz_tabele_statystyk(df, data):
     df_out['total'].T['Vehicle overload x kilometers [t*km]'] = "-"
     df_out['total'].T['Average power of hydraulic system during body operation [kW]'] = "-"
     df_out['total'].T['Waste mass [t] cumulative'] = np.ceil(df.T["Waste mass [t] cumulative"].max())
+    df_out['total'].T['Total # of press cycles cumulative'] = "-"
+    df_out['total'].T['Total # of press cycles low forces cumulative'] = "-"
+    df_out['total'].T['Total # of press cycles medium forces cumulative'] = "-"
+    df_out['total'].T['Total # of press cycles high forces cumulative'] = "-"
+    # df_out['total'].T['avg. week'] = '-'
+    # df_out['total'].T['avg. month'] = '-'
     
     ## %%
     # daily
     mth_total = df_out['selected day'].T['Motohours total']
     distance_total = df_out['selected day'].T['Distance [km]']
     hyd_en_total = df_out['selected day'].T['Hydraulic energy [GJ]']
+    cycles_total = df_out['selected day'].T['Total # of press cycles']
+    cycles_total_all = df_out['selected day'].T['Total # of press cycles cumulative']
     
     
-    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, cycles_total, cycles_total, cycles_total, cycles_total, -1, cycles_total_all, cycles_total_all, cycles_total_all, cycles_total_all]
     
     #print(dividers)
     percentage_daily = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['selected day'].values, dividers)]
@@ -204,8 +212,11 @@ def stworz_tabele_statystyk(df, data):
     mth_total = df_out['avg. week'].T['Motohours total']
     distance_total = df_out['avg. week'].T['Distance [km]']
     hyd_en_total = df_out['avg. week'].T['Hydraulic energy [GJ]']
+    cycles_total = df_out['avg. week'].T['Total # of press cycles']
+    cycles_total_all = df_out['avg. week'].T['Total # of press cycles cumulative']
     
-    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
+    
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, cycles_total, cycles_total, cycles_total, cycles_total, -1, cycles_total_all, cycles_total_all, cycles_total_all, cycles_total_all]
     
     percentage_weekly = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['avg. week'].values, dividers)]
     
@@ -215,8 +226,11 @@ def stworz_tabele_statystyk(df, data):
     mth_total = df_out['avg. month'].T['Motohours total']
     distance_total = df_out['avg. month'].T['Distance [km]']
     hyd_en_total = df_out['avg. month'].T['Hydraulic energy [GJ]']
+    cycles_total = df_out['avg. month'].T['Total # of press cycles']
+    cycles_total_all = df_out['avg. month'].T['Total # of press cycles cumulative']
     
-    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,]
+    
+    dividers = [mth_total, mth_total, mth_total, mth_total, mth_total, distance_total, distance_total, -1, -1, -1, hyd_en_total, hyd_en_total, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, cycles_total, cycles_total, cycles_total, cycles_total, -1, cycles_total_all, cycles_total_all, cycles_total_all, cycles_total_all]
     
     percentage_monthly = [str(round(x/y*100, 1))+"%" if y>0 else "-" for x,y in zip(df_out['avg. month'].values, dividers)]
     
@@ -227,15 +241,20 @@ def stworz_tabele_statystyk(df, data):
     # df_out.loc['Leakage cylinder detection'] = "-"
     # df_out.loc['Time with oil over 60°C [h]'] = "-"
     
+    # usunięcie 4 ostatnich rzędów
+    df_out = df_out.iloc[:-5]
+    
+    
+    
     df_out = df_out[['selected day', '%', 'avg. week', '% ', 'avg. month', ' %', 'total']]
     
     return df_out.astype(str)
     
 
 #@st.cache(suppress_st_warning=True)
-def wykres_z_tygodnia(df, data, lista_kolumn, lista_etykiet, title="", zakres_dni=None):
+def wykres_z_tygodnia(df, data, lista_kolumn, lista_etykiet, title="", zakres_dni=None, fs=(8,5)):
     
-    fig, ax = plt.subplots(1, figsize=(8,5))
+    fig, ax = plt.subplots(1, figsize=fs)
     
     colors = ['green', 'orange', 'blue', 'yellow', 'magenta', 'purple', 'cyan']
     
@@ -268,9 +287,9 @@ def wykres_z_tygodnia(df, data, lista_kolumn, lista_etykiet, title="", zakres_dn
     return fig
 
 #@st.cache(suppress_st_warning=True)    
-def wykres_z_tygodnia2(df, data, lista_kolumn, lista_etykiet, title="", zakres_dni=None):
+def wykres_z_tygodnia2(df, data, lista_kolumn, lista_etykiet, title="", zakres_dni=None, fs=(8,5)):
     
-    fig, ax = plt.subplots(1, figsize=(8,5))
+    fig, ax = plt.subplots(1, figsize=fs)
     
     if zakres_dni is None:
         dni_tydzien = [str(data + dt.timedelta(days=d-data.weekday())) for d in range(7)]
@@ -371,12 +390,16 @@ def tabela_statystyk_wyswietl(df):
                "lemonchiffon", "lemonchiffon",
                "mistyrose", "mistyrose",
                "floralwhite", "floralwhite", "floralwhite", "floralwhite","floralwhite",
-               "aliceblue",  "aliceblue",]*5],
+               "aliceblue",  "aliceblue",
+               "seashell",
+               "lavender", "lavender", "lavender", "lavender",
+               "floralwhite",
+               "lavender", "lavender", "lavender", "lavender",]*5],
                font=dict(size=14),))
     ])
     
     
-    fig.update_layout(height=1200)
+    fig.update_layout(height=1350)
     
     return fig
 
@@ -861,12 +884,14 @@ if not df.empty:
     
     zakres_dni8 = cols[1].slider("Range of days        ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(data_od-dt.timedelta(days=data_od.weekday()), data_od+dt.timedelta(days=6-data_od.weekday())))
     
-    fig_q8 = wykres_z_tygodnia2(df_stats, data_od, ['Average power of hydraulic system during body operation [kW]'], ['Average power of hydraulic system during body operation [kW]'], zakres_dni=zakres_dni8)
+    fig_q8 = wykres_z_tygodnia2(df_stats, data_od, ['Average power of hydraulic system during body operation [kW]'], ['Average power of hydraulic system during body operation [kW]'], zakres_dni=zakres_dni8, fs=(10,5))
     plt.legend()
-    plt.ylabel("Average power of hydraulic system during body operation [kW]")
+    plt.ylabel('Avg. pow. of hyd. during body operation [kW]', fontsize=11)
     plt.tight_layout()
     
-    fig_r8 = wykres_dystrybucja_v2(df_stats, 'Average power of hydraulic system during body operation [kW]', today_stats=dane_z_dnia, bin_w=1)
+    fig_r8 = wykres_dystrybucja_v2(df_stats, "Average power of hydraulic system during body operation [kW]", today_stats=dane_z_dnia, bin_w=1, fs=(10,5))
+    plt.xlabel('Avg. pow. of hyd. during body operation [kW]', fontsize=11)
+    plt.legend()
     
     cols = exp8.columns((1,1))
     cols[0].write(fig_q8)
@@ -881,18 +906,21 @@ if not df.empty:
     #zakres_dni9 = cols[1].slider("Range of days         ", min_value=dt.date(2021,8,16), max_value=dt.date.today(), value=(dt.date.today()-dt.timedelta(days=7+dt.date.today().weekday()), dt.date.today()-dt.timedelta(days=dt.date.today().weekday()+1)))
     
     # cykle do zrobienia
-    fig_p9_1, ax_p9_1 = plt.subplots(1, figsize=(8,5))
+    # fig_p9_1, ax_p9_1 = plt.subplots(1, figsize=(6,3))
+    fig_p9_1 = wykres_z_tygodnia(df_stats, data_od, ["Total # of press cycles high forces cumulative", "Total # of press cycles medium forces cumulative", 'Total # of press cycles low forces cumulative'], ["Total # of press cycles high forces cumulative", "Total # of press cycles medium forces cumulative", 'Total # of press cycles low forces cumulative'], zakres_dni=(dt.date(2021,8,16), dt.date.today()), fs=(10,5))
+    plt.legend()
     plt.tight_layout()
     
     # masa odpadow
     #df_stats_2 = df_stats.T.cumsum().T
     #fig_p9_2, ax_p9_2 = plt.subplots(1, figsize=(8,5))
-    fig_p9_2 = wykres_z_tygodnia2(df_stats, data_od, ['Waste mass [t] cumulative'], ['Waste mass [t] cumulative'], zakres_dni=(dt.date(2021,8,16), dt.date.today()))
+    fig_p9_2 = wykres_z_tygodnia2(df_stats, data_od, ['Waste mass [t] cumulative'], ['Waste mass [t] cumulative'], fs=(10,5), zakres_dni=(dt.date(2021,8,16), dt.date.today()))
+    plt.legend()
     plt.tight_layout()
     
     
     # temperatury
-    fig_q9_1, ax_q9_1 = plt.subplots(1, figsize=(8,5))
+    fig_q9_1, ax_q9_1 = plt.subplots(1, figsize=(10,5))
     plt.plot(df['Data_godzina'], df["temperatura_IN12"], label="temperature PIN 1", c='b')
     plt.plot(df['Data_godzina'], df["temperatura_IN14"], label="temperature PIN 2", c='g')
     plt.plot(df['Data_godzina'], df["temperatura_zewn"], label="ambient temperature",c='orange')
@@ -906,7 +934,7 @@ if not df.empty:
     
     
     # delta temp.
-    fig_q9_2, ax_q9_2 = plt.subplots(1, figsize=(8,5))
+    fig_q9_2, ax_q9_2 = plt.subplots(1, figsize=(10,5))
     plt.plot(df['Data_godzina'], df['temperatura_IN12']-df['temperatura_zewn'], label = 'delta T PIN 1 ', c='b')
     plt.plot(df['Data_godzina'], df['temperatura_IN14']-df['temperatura_zewn'], label = 'delta T PIN 2', c='g')
     
@@ -918,6 +946,8 @@ if not df.empty:
     ax_q9_2.xaxis.set_major_formatter(xfmt)
     plt.grid()
     plt.legend()
+    # plt.xticks(fontsize=7)
+    # plt.yticks(fontsize=7)
     plt.tight_layout()
     
     # rysowanie
